@@ -16,6 +16,7 @@ This repository demonstrates two versions of a traditional ticketing support sys
   - `run_demo.sh` - script that runs the comparison demo within a virtual env
 
 ## Prerequisites
+- I have only tested this on a Mac ARM laptop--I would think it works on Windows, except that the python commands are bound to be different
 - Python 3.8+
 - Temporal server running (scripts assume localhost:7233 -- edit worker.py, comparison_demo.py and client.py to change)
 - `pip install temporalio`
