@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+venv/
+.env
+.DS_Store
+temporal-data/
+.idea/
+.DS_Store
+.DS_Store?
+.temporal/
+
