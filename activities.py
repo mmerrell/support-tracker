@@ -2,44 +2,47 @@ import asyncio
 import random
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
+
+from models import Ticket
 
 @activity.defn
-async def send_auto_response(ticket_id: str, customer_name: str) -> str:
+async def send_auto_response(ticket: Ticket) -> str:
     """Send automated acknowledgment"""
-    print(f"Sending auto-response to {customer_name} for ticket {ticket_id}")
+    activity.logger.debug(f"Sending auto-response to {ticket.customer_name} for ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
-    return f"Auto-response sent to {customer_name}"
+    return f"Auto-response sent to {ticket.customer_name}"
 
 @activity.defn
-async def search_knowledge_base(issue: str) -> str:
+async def search_knowledge_base(ticket: Ticket) -> str:
     """Search knowledge base for solution"""
-    print(f"Searching knowledge base for: {issue}")
+    activity.logger.debug(f"Searching knowledge base for: {ticket.issue}")
     await asyncio.sleep(7)
 
     # Sometimes no solution found
     if random.random() < 0.3:
-        return "no_solution"
+        raise ApplicationError("No solution found in knowledge base", non_retryable=True)
 
-    return "solution_found"
+    return "Solution found: Here's a link: [link]"
 
 @activity.defn
-async def assign_agent(ticket_id: str, priority: str) -> str:
+async def assign_agent(ticket: Ticket) -> str:
     """Assign ticket to agent"""
-    agent_type = "senior" if priority == "high" else "regular"
-    print(f"Assigning {agent_type} agent to ticket {ticket_id}")
+    agent_type = "senior" if ticket.priority == "high" else "regular"
+    activity.logger.debug(f"Assigning {agent_type} agent to ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
 
     # Sometimes no agents available
     if random.random() < 0.15:
-        raise Exception("No agents available!")
+        return "agent_unavailable"
 
     agent_name = "Agent-" + str(random.randint(100, 999))
     return agent_name
 
 @activity.defn
-async def investigate_issue(ticket_id: str, issue: str) -> str:
+async def agent_investigate(ticket: Ticket) -> str:
     """Agent investigates the issue"""
-    print(f"Agent investigating ticket {ticket_id}: {issue}")
+    activity.logger.debug(f"Agent investigating ticket {ticket.ticket_id}: {ticket.issue}")
     await asyncio.sleep(7)
 
     # Sometimes needs escalation
@@ -49,39 +52,46 @@ async def investigate_issue(ticket_id: str, issue: str) -> str:
     return "investigation_complete"
 
 @activity.defn
-async def resolve_ticket(ticket_id: str) -> str:
+async def agent_resolve(ticket: Ticket) -> str:
     """Agent resolves the ticket"""
-    print(f"Agent resolving ticket {ticket_id}")
+    activity.logger.debug(f"Agent resolving ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
+    if random.random() < 0.2:
+        raise ApplicationError("Agent could not resolve, reassigning to another agent")
+
     return "Ticket resolved by agent"
 
 @activity.defn
-async def escalate_to_engineering(ticket_id: str, issue: str) -> str:
+async def escalate_to_engineering(ticket: Ticket) -> str:
     """Escalate to engineering team"""
-    print(f"Escalating ticket {ticket_id} to engineering: {issue}")
-    await asyncio.sleep(7)
-    return "Escalated to engineering"
+    activity.logger.debug(f"Escalating ticket {ticket.ticket_id} to engineering: {ticket.issue}")
+    await asyncio.sleep(30)
+    # Sometimes the engineering team punts to the backlog
+    if random.random() < 0.2:
+        return "engineering_rejected"
+
+    return "engineering_accepted"
 
 @activity.defn
-async def apply_urgent_fix(ticket_id: str) -> str:
+async def apply_urgent_fix(ticket: Ticket) -> str:
     """Apply urgent fix for high priority issues"""
-    print(f"Applying urgent fix for ticket {ticket_id}")
+    activity.logger.debug(f"Applying urgent fix for ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
 
     # Sometimes fix fails
     if random.random() < 0.1:
-        raise Exception("Urgent fix failed!")
+        return "fix_failed"
 
-    return "Urgent fix applied"
+    return "fix_succeeded"
 
 @activity.defn
-async def notify_customer(customer_name: str, message: str):
+async def notify_customer(ticket: Ticket, message: str) -> None:
     """Notify customer of resolution"""
-    print(f"Notifying {customer_name}: {message}")
-    await asyncio.sleep(1)
+    activity.logger.debug(f"Notifying {ticket.customer_name}: {message}")
+    await asyncio.sleep(3)
 
 @activity.defn
-async def notify_management(ticket_id: str, priority: str):
+async def notify_management(ticket: Ticket):
     """Notify management for high priority tickets"""
-    print(f"Notifying management about {priority} priority ticket {ticket_id}")
-    await asyncio.sleep(1)
+    activity.logger.debug(f"Notifying management about {ticket.priority} priority ticket {ticket.ticket_id}")
+    await asyncio.sleep(4)
