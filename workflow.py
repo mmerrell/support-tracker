@@ -53,7 +53,6 @@ class SupportTicketSystem:
                 # Step 1: Auto-response
                 ticket.status = "auto_responding"
                 self.current_step = ticket.status
-                await self._wait_if_paused()
                 auto_result = await workflow.execute_activity(
                     send_auto_response,
                     args=[ticket.ticket_id, ticket.customer_name],
@@ -62,11 +61,11 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Auto-response sent")
                 workflow.logger.info(f"Result: {auto_result}")
+                await self._wait_if_paused()
 
                 # Step 2: Search knowledge base
                 ticket.status = "searching_kb"
                 self.current_step = ticket.status
-                await self._wait_if_paused()
                 kb_result = await workflow.execute_activity(
                     search_knowledge_base,
                     args=[ticket.issue],
@@ -74,12 +73,12 @@ class SupportTicketSystem:
                     retry_policy=DEFAULT_RETRY_POLICY,
                 )
                 self.steps_completed.append("Searching KB")
-                workflow.logger.info(f"Knowledge base search: {kb_result}")
+                await self._wait_if_paused()
 
+                workflow.logger.info(f"Knowledge base search: {kb_result}")
                 if kb_result == "solution_found":
                     ticket.status = "resolved_auto"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     await workflow.execute_activity(
                         notify_customer,
                         args=[ticket.ticket_id, "Your issue has been resolved! Check the solution link."],
@@ -90,9 +89,9 @@ class SupportTicketSystem:
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved automatically!\n")
                     return f"Resolved automatically: {ticket.ticket_id}"
                 else:
+                    await self._wait_if_paused()
                     # Need human help
                     workflow.logger.info("No solution found, assigning to agent...")
-                    await self._wait_if_paused()
                     agent = await workflow.execute_activity(
                         assign_agent,
                         args=[ticket.ticket_id, ticket.priority],
@@ -101,20 +100,20 @@ class SupportTicketSystem:
                     )
                     self.steps_completed.append("KB unsuccessful: agent assigned")
                     workflow.logger.info(f"Assigned to {agent}")
-
                     await self._wait_if_paused()
+
                     resolve_result = await workflow.execute_activity(
                         resolve_ticket,
                         ticket.ticket_id,
                         start_to_close_timeout=timedelta(minutes=5),
                         retry_policy=DEFAULT_RETRY_POLICY,
                     )
-                    self.steps_completed.append("Agent investigating")
+                    self.steps_completed.append("Agent investigating, ticket resolved")
                     workflow.logger.info(f"{resolve_result}")
+                    await self._wait_if_paused()
 
                     ticket.status = "resolved_agent"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     await workflow.execute_activity(
                         notify_customer,
                         args=[ticket.ticket_id, "Your ticket has been resolved by our team!"],
@@ -132,7 +131,6 @@ class SupportTicketSystem:
                 # Step 1: Assign agent
                 ticket.status = "assigning_agent"
                 self.current_step = ticket.status
-                await self._wait_if_paused()
                 agent = await workflow.execute_activity(
                     assign_agent,
                     args=[ticket.ticket_id, ticket.priority],
@@ -141,11 +139,11 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Agent investigating")
                 workflow.logger.info(f"Assigned to {agent}")
+                await self._wait_if_paused()
 
                 # Step 2: Investigate
                 ticket.status = "investigating"
                 self.current_step = ticket.status
-                await self._wait_if_paused()
                 investigation_result = await workflow.execute_activity(
                     investigate_issue,
                     args=[ticket.ticket_id, ticket.issue],
@@ -154,13 +152,13 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Agent investigating")
                 workflow.logger.info(f"Investigation: {investigation_result}")
+                await self._wait_if_paused()
 
                 if investigation_result == "needs_escalation":
                     # Escalate to engineering
                     workflow.logger.info("Issue needs escalation...")
                     ticket.status = "escalating"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     esc_result = await workflow.execute_activity(
                         escalate_to_engineering,
                         args=[ticket.ticket_id, ticket.issue],
@@ -169,10 +167,10 @@ class SupportTicketSystem:
                     )
                     self.steps_completed.append("Escalating ticket")
                     workflow.logger.info(f"{esc_result}")
+                    await self._wait_if_paused()
 
                     ticket.status = "resolved_escalated"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     await workflow.execute_activity(
                         notify_customer,
                         args=[ticket.ticket_id, "Your issue required engineering review and has been resolved!"],
@@ -186,7 +184,6 @@ class SupportTicketSystem:
                     # Resolve normally
                     ticket.status = "resolving"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     resolve_result = await workflow.execute_activity(
                         resolve_ticket,
                         ticket.ticket_id,
@@ -195,10 +192,10 @@ class SupportTicketSystem:
                     )
                     self.steps_completed.append("Agent resolving")
                     workflow.logger.info(f"{resolve_result}")
+                    await self._wait_if_paused()
 
                     ticket.status = "resolved_agent"
                     self.current_step = ticket.status
-                    await self._wait_if_paused()
                     await workflow.execute_activity(
                         notify_customer,
                         args=[ticket.ticket_id, "Your ticket has been resolved!"],
@@ -216,7 +213,6 @@ class SupportTicketSystem:
                 # Step 1: Assign senior agent immediately
                 ticket.status = "assigning_senior"
                 self.current_step = ticket.status
-                await self._wait_if_paused()
                 agent = await workflow.execute_activity(
                     assign_agent,
                     args=[ticket.ticket_id, ticket.priority],
@@ -225,6 +221,7 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Assigning sr agent")
                 workflow.logger.info(f"Assigned to senior: {agent}")
+                await self._wait_if_paused()
 
                 # Step 2: Escalate immediately
                 ticket.status = "escalating"
@@ -238,6 +235,7 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Escalating ticket")
                 workflow.logger.info(f"{esc_result}")
+                await self._wait_if_paused()
 
                 # Step 3: Apply urgent fix
                 ticket.status = "urgent_fix"
@@ -251,6 +249,7 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Applying urgent fix")
                 workflow.logger.info(f"{fix_result}")
+                await self._wait_if_paused()
 
                 # Step 4: Notify everyone
                 ticket.status = "notifying"
@@ -264,8 +263,8 @@ class SupportTicketSystem:
                 )
                 self.steps_completed.append("Notifying re ticket")
                 workflow.logger.info(f"Customer notified")
-
                 await self._wait_if_paused()
+
                 await workflow.execute_activity(
                     notify_management,
                     args=[ticket.ticket_id, ticket.priority],
