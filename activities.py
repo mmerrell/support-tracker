@@ -2,6 +2,8 @@ import asyncio
 import random
 
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
+
 
 @activity.defn
 async def send_auto_response(ticket_id: str, customer_name: str) -> str:
@@ -18,9 +20,9 @@ async def search_knowledge_base(issue: str) -> str:
 
     # Sometimes no solution found
     if random.random() < 0.3:
-        return "no_solution"
+        raise ApplicationError("No solution found in knowledge base", non_retryable=True)
 
-    return "solution_found"
+    return "Solution found: Here's a link: [link]"
 
 @activity.defn
 async def assign_agent(ticket_id: str, priority: str) -> str:
@@ -49,10 +51,13 @@ async def investigate_issue(ticket_id: str, issue: str) -> str:
     return "investigation_complete"
 
 @activity.defn
-async def resolve_ticket(ticket_id: str) -> str:
+async def agent_resolves_ticket(ticket_id: str) -> str:
     """Agent resolves the ticket"""
     print(f"Agent resolving ticket {ticket_id}")
     await asyncio.sleep(7)
+    if random.random() < 0.2:
+        raise Exception("Agent could not accept, reassigning")
+
     return "Ticket resolved by agent"
 
 @activity.defn
@@ -60,6 +65,10 @@ async def escalate_to_engineering(ticket_id: str, issue: str) -> str:
     """Escalate to engineering team"""
     print(f"Escalating ticket {ticket_id} to engineering: {issue}")
     await asyncio.sleep(7)
+    # Sometimes the engineering team punts to the backlog
+    if random.random() < 0.2:
+        raise Exception("Engineering team rejected")
+
     return "Escalated to engineering"
 
 @activity.defn

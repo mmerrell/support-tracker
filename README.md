@@ -63,9 +63,14 @@ hours, or days, and it will resume right where it left off, with no load on any 
 no regular polling. This demo will also let you get the state of the workflow wherever it is at the
 moment.
 
+### Bugs
+- ~~The "pause" mechanism wait for the status to change to the next step for actually pausing the workflow. This gave a misleading indication of the actual state of the workflow~~
+- The workflow_id should be the ticket_id, rather than "ticket_id-uuid4". This would help Temporal to force the primary key constraint on ticket id. But it's possible this is an anti-pattern--I can understand why that should only be enforced at the db layer (separation of concerns)
+
 ### Improvements
 This is just a quick demonstration of Temporal's capabilities. In the future, I'd like to add:
+- ~~Looking at it again, the if/else block for the knowledge base search needs more Temporal-idiomatic structure~~
 - More nuanced retry mechanisms
 - Heartbeats from long-running tasks
-- Compensation activities for failed steps
+- Compensation activities for failed steps (if an agent takes too long to respond and we need to reassign, etc)
 - Demonstration of race condition handling during API/db calls

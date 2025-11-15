@@ -4,15 +4,15 @@ from temporalio.worker import Worker
 
 from workflow import SupportTicketSystem
 from activities import (
-        resolve_ticket,
-        assign_agent,
-        notify_customer,
-        notify_management,
-        escalate_to_engineering,
-        apply_urgent_fix,
-        investigate_issue,
-        send_auto_response,
-        search_knowledge_base,
+    agent_resolves_ticket,
+    assign_agent,
+    notify_customer,
+    notify_management,
+    escalate_to_engineering,
+    apply_urgent_fix,
+    investigate_issue,
+    send_auto_response,
+    search_knowledge_base,
     )
 
 async def main():
@@ -20,7 +20,17 @@ async def main():
 
     worker = Worker(
         client,
-        activities=[resolve_ticket,assign_agent,notify_customer,notify_management,escalate_to_engineering,apply_urgent_fix,investigate_issue,send_auto_response,search_knowledge_base],
+        activities=[
+            agent_resolves_ticket,
+            assign_agent,
+            notify_customer,
+            notify_management,
+            escalate_to_engineering,
+            apply_urgent_fix,
+            investigate_issue,
+            send_auto_response,
+            search_knowledge_base
+        ],
         workflows=[SupportTicketSystem],
         task_queue="ticket-tasks"
     )

@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ApplicationError
 
 from models import Ticket
 
@@ -14,7 +15,7 @@ DEFAULT_RETRY_POLICY = RetryPolicy(
 
 with workflow.unsafe.imports_passed_through():
     from activities import (
-        resolve_ticket,
+        agent_resolves_ticket,
         assign_agent,
         notify_customer,
         notify_management,
@@ -66,31 +67,31 @@ class SupportTicketSystem:
                 # Step 2: Search knowledge base
                 ticket.status = "searching_kb"
                 self.current_step = ticket.status
-                kb_result = await workflow.execute_activity(
-                    search_knowledge_base,
-                    args=[ticket.issue],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
-                )
-                self.steps_completed.append("Searching KB")
-                await self._wait_if_paused()
 
-                workflow.logger.info(f"Knowledge base search: {kb_result}")
-                if kb_result == "solution_found":
+                try:
+                    solution = await workflow.execute_activity(
+                        search_knowledge_base,
+                        args=[ticket.issue],
+                        start_to_close_timeout=timedelta(minutes=5),
+                        retry_policy=DEFAULT_RETRY_POLICY,
+                    )
+                    self.steps_completed.append("Searching KB")
+                    await self._wait_if_paused()
+
                     ticket.status = "resolved_auto"
                     self.current_step = ticket.status
                     await workflow.execute_activity(
                         notify_customer,
-                        args=[ticket.ticket_id, "Your issue has been resolved! Check the solution link."],
+                        args=[ticket.ticket_id, f"Your issue has been resolved! {solution}"],
                         start_to_close_timeout=timedelta(minutes=5),
                         retry_policy=DEFAULT_RETRY_POLICY,
                     )
                     self.steps_completed.append("KB success")
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved automatically!\n")
                     return f"Resolved automatically: {ticket.ticket_id}"
-                else:
-                    await self._wait_if_paused()
-                    # Need human help
+
+                except ApplicationError as e:
+                    # KB Search failed -- need human help
                     workflow.logger.info("No solution found, assigning to agent...")
                     agent = await workflow.execute_activity(
                         assign_agent,
@@ -103,16 +104,17 @@ class SupportTicketSystem:
                     await self._wait_if_paused()
 
                     resolve_result = await workflow.execute_activity(
-                        resolve_ticket,
+                        agent_resolves_ticket,
                         ticket.ticket_id,
                         start_to_close_timeout=timedelta(minutes=5),
                         retry_policy=DEFAULT_RETRY_POLICY,
                     )
                     self.steps_completed.append("Agent investigating, ticket resolved")
                     workflow.logger.info(f"{resolve_result}")
+                    ticket.status = "resolved_by_agent"
                     await self._wait_if_paused()
 
-                    ticket.status = "resolved_agent"
+                    ticket.status = "notify_customer"
                     self.current_step = ticket.status
                     await workflow.execute_activity(
                         notify_customer,
@@ -185,7 +187,7 @@ class SupportTicketSystem:
                     ticket.status = "resolving"
                     self.current_step = ticket.status
                     resolve_result = await workflow.execute_activity(
-                        resolve_ticket,
+                        agent_resolves_ticket,
                         ticket.ticket_id,
                         start_to_close_timeout=timedelta(minutes=5),
                         retry_policy=DEFAULT_RETRY_POLICY,
