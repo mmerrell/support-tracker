@@ -137,7 +137,7 @@ class LowPriorityWorkflow(WorkflowBase):
         ticket.status = "auto_responding"
         self.current_step = ticket.status
         auto_result = await _execute_activity(
-            send_auto_response, ticket.ticket_id, ticket.customer_name,
+            send_auto_response, ticket,
             task_queue="support",
         )
         self.steps_completed.append("Auto-response sent")
@@ -150,7 +150,7 @@ class LowPriorityWorkflow(WorkflowBase):
 
         try:
             solution = await _execute_activity(
-                search_knowledge_base, ticket.issue,
+                search_knowledge_base, ticket,
                 task_queue="support",
             )
             self.steps_completed.append("Searching KB")
@@ -159,7 +159,7 @@ class LowPriorityWorkflow(WorkflowBase):
             ticket.status = "resolved_auto"
             self.current_step = ticket.status
             await _execute_activity(
-                notify_customer, ticket.ticket_id, f"Your issue has been resolved! {solution}",
+                notify_customer, ticket, f"Your issue has been resolved! {solution}",
                 task_queue="support",
             )
             self.steps_completed.append("KB success")
@@ -173,7 +173,7 @@ class LowPriorityWorkflow(WorkflowBase):
             # KB Search failed -- need human help
             workflow.logger.info("No solution found, assigning to agent...")
             agent = await _execute_activity(
-                assign_agent, ticket.ticket_id, ticket.priority,
+                assign_agent, ticket,
                 task_queue="internal",
             )
             self.steps_completed.append("KB unsuccessful: agent assigned")
@@ -181,7 +181,7 @@ class LowPriorityWorkflow(WorkflowBase):
             await self._wait_if_paused()
 
             resolve_result = await _execute_activity(
-                agent_resolve, ticket.ticket_id,
+                agent_resolve, ticket,
                 task_queue="support",
             )
             self.steps_completed.append("Agent investigating, ticket resolved")
@@ -193,7 +193,7 @@ class LowPriorityWorkflow(WorkflowBase):
             self.current_step = ticket.status
             await _execute_activity(
                 notify_customer,
-                ticket.ticket_id, "Your ticket has been resolved by our team!",
+                ticket, "Your ticket has been resolved by our team!",
                 task_queue="support",
             )
             self.steps_completed.append("Agent successful")
@@ -213,7 +213,7 @@ class MediumPriorityWorkflow(WorkflowBase):
         ticket.status = "assigning_agent"
         self.current_step = ticket.status
         agent = await _execute_activity(
-            assign_agent, ticket.ticket_id, ticket.priority,
+            assign_agent, ticket,
             task_queue="internal",
         )
         self.steps_completed.append("Agent investigating")
@@ -224,7 +224,7 @@ class MediumPriorityWorkflow(WorkflowBase):
         ticket.status = "investigating"
         self.current_step = ticket.status
         investigation_result = await _execute_activity(
-            agent_investigate, ticket.ticket_id, ticket.issue,
+            agent_investigate, ticket,
             task_queue="internal",
         )
         self.steps_completed.append("Agent investigating")
@@ -238,7 +238,7 @@ class MediumPriorityWorkflow(WorkflowBase):
             ticket.status = "escalating"
             self.current_step = ticket.status
             esc_result = await _execute_activity(
-                escalate_to_engineering, ticket.ticket_id, ticket.issue,
+                escalate_to_engineering, ticket,
                 task_queue="internal",
             )
             self.steps_completed.append("Escalating ticket")
@@ -248,7 +248,7 @@ class MediumPriorityWorkflow(WorkflowBase):
             ticket.status = "resolved_escalated"
             self.current_step = ticket.status
             await _execute_activity(
-                notify_customer, ticket.ticket_id, "Your issue required engineering review and has been resolved!",
+                notify_customer, ticket, "Your issue required engineering review and has been resolved!",
                 task_queue="support",
             )
             self.steps_completed.append("Escalation successful")
@@ -259,7 +259,7 @@ class MediumPriorityWorkflow(WorkflowBase):
             ticket.status = "resolving"
             self.current_step = ticket.status
             resolve_result = await _execute_activity(
-                agent_resolve, ticket.ticket_id,
+                agent_resolve, ticket,
                 task_queue="support",
             )
             self.steps_completed.append("Agent resolving")
@@ -269,7 +269,7 @@ class MediumPriorityWorkflow(WorkflowBase):
             ticket.status = "resolved_agent"
             self.current_step = ticket.status
             await _execute_activity(
-                notify_customer, ticket.ticket_id, "Your ticket has been resolved!",
+                notify_customer, ticket, "Your ticket has been resolved!",
                 task_queue="support",
             )
             self.steps_completed.append("Agent resolved")
@@ -288,7 +288,7 @@ class HighPriorityWorkflow(WorkflowBase):
         ticket.status = "assigning_senior"
         self.current_step = ticket.status
         agent = await _execute_activity(
-            assign_agent, ticket.ticket_id, ticket.priority,
+            assign_agent, ticket,
             task_queue="internal",
         )
         self.steps_completed.append("Assigning sr agent")
@@ -300,7 +300,7 @@ class HighPriorityWorkflow(WorkflowBase):
         self.current_step = ticket.status
         await self._wait_if_paused()
         esc_result = await _execute_activity(
-            escalate_to_engineering, ticket.ticket_id, ticket.issue,
+            escalate_to_engineering, ticket,
             task_queue="internal",
         )
         self.steps_completed.append("Escalating ticket")
@@ -312,8 +312,7 @@ class HighPriorityWorkflow(WorkflowBase):
         self.current_step = ticket.status
         await self._wait_if_paused()
         fix_result = await _execute_activity(
-            apply_urgent_fix,
-            ticket.ticket_id,
+            apply_urgent_fix,ticket,
             task_queue="engineering",
         )
         self.steps_completed.append("Applying urgent fix")
@@ -325,7 +324,7 @@ class HighPriorityWorkflow(WorkflowBase):
         self.current_step = ticket.status
         await self._wait_if_paused()
         await _execute_activity(
-            notify_customer, ticket.ticket_id, "Engineering fixed it!",
+            notify_customer, ticket, "Engineering fixed it!",
             task_queue="support",
         )
         self.steps_completed.append("Notifying re ticket")
@@ -333,7 +332,7 @@ class HighPriorityWorkflow(WorkflowBase):
         await self._wait_if_paused()
 
         await _execute_activity(
-            notify_management, ticket.ticket_id, ticket.priority,
+            notify_management, ticket,
             task_queue="support",
         )
         self.steps_completed.append("Notifying mgmt")
