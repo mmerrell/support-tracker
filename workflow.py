@@ -54,11 +54,8 @@ class SupportTicketSystem:
                 # Step 1: Auto-response
                 ticket.status = "auto_responding"
                 self.current_step = ticket.status
-                auto_result = await workflow.execute_activity(
-                    send_auto_response,
-                    args=[ticket.ticket_id, ticket.customer_name],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                auto_result = await self._execute_activity(
+                    send_auto_response,ticket.ticket_id, ticket.customer_name,
                 )
                 self.steps_completed.append("Auto-response sent")
                 workflow.logger.info(f"Result: {auto_result}")
@@ -69,22 +66,16 @@ class SupportTicketSystem:
                 self.current_step = ticket.status
 
                 try:
-                    solution = await workflow.execute_activity(
-                        search_knowledge_base,
-                        args=[ticket.issue],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    solution = await self._execute_activity(
+                        search_knowledge_base, ticket.issue,
                     )
                     self.steps_completed.append("Searching KB")
                     await self._wait_if_paused()
 
                     ticket.status = "resolved_auto"
                     self.current_step = ticket.status
-                    await workflow.execute_activity(
-                        notify_customer,
-                        args=[ticket.ticket_id, f"Your issue has been resolved! {solution}"],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    await self._execute_activity(
+                        notify_customer,ticket.ticket_id, f"Your issue has been resolved! {solution}",
                     )
                     self.steps_completed.append("KB success")
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved automatically!\n")
@@ -93,21 +84,15 @@ class SupportTicketSystem:
                 except ApplicationError as e:
                     # KB Search failed -- need human help
                     workflow.logger.info("No solution found, assigning to agent...")
-                    agent = await workflow.execute_activity(
-                        assign_agent,
-                        args=[ticket.ticket_id, ticket.priority],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    agent = await self._execute_activity(
+                        assign_agent, ticket.ticket_id, ticket.priority,
                     )
                     self.steps_completed.append("KB unsuccessful: agent assigned")
                     workflow.logger.info(f"Assigned to {agent}")
                     await self._wait_if_paused()
 
-                    resolve_result = await workflow.execute_activity(
-                        agent_resolves_ticket,
-                        ticket.ticket_id,
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    resolve_result = await self._execute_activity(
+                        agent_resolves_ticket,ticket.ticket_id,
                     )
                     self.steps_completed.append("Agent investigating, ticket resolved")
                     workflow.logger.info(f"{resolve_result}")
@@ -116,11 +101,9 @@ class SupportTicketSystem:
 
                     ticket.status = "notify_customer"
                     self.current_step = ticket.status
-                    await workflow.execute_activity(
+                    await self._execute_activity(
                         notify_customer,
-                        args=[ticket.ticket_id, "Your ticket has been resolved by our team!"],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                        ticket.ticket_id, "Your ticket has been resolved by our team!",
                     )
                     self.steps_completed.append("Agent successful")
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by agent!\n")
@@ -133,11 +116,8 @@ class SupportTicketSystem:
                 # Step 1: Assign agent
                 ticket.status = "assigning_agent"
                 self.current_step = ticket.status
-                agent = await workflow.execute_activity(
-                    assign_agent,
-                    args=[ticket.ticket_id, ticket.priority],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                agent = await self._execute_activity(
+                    assign_agent,ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Agent investigating")
                 workflow.logger.info(f"Assigned to {agent}")
@@ -146,11 +126,8 @@ class SupportTicketSystem:
                 # Step 2: Investigate
                 ticket.status = "investigating"
                 self.current_step = ticket.status
-                investigation_result = await workflow.execute_activity(
-                    investigate_issue,
-                    args=[ticket.ticket_id, ticket.issue],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                investigation_result = await self._execute_activity(
+                    investigate_issue, ticket.ticket_id, ticket.issue,
                 )
                 self.steps_completed.append("Agent investigating")
                 workflow.logger.info(f"Investigation: {investigation_result}")
@@ -161,11 +138,8 @@ class SupportTicketSystem:
                     workflow.logger.info("Issue needs escalation...")
                     ticket.status = "escalating"
                     self.current_step = ticket.status
-                    esc_result = await workflow.execute_activity(
-                        escalate_to_engineering,
-                        args=[ticket.ticket_id, ticket.issue],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    esc_result = await self._execute_activity(
+                        escalate_to_engineering, ticket.ticket_id, ticket.issue,
                     )
                     self.steps_completed.append("Escalating ticket")
                     workflow.logger.info(f"{esc_result}")
@@ -173,11 +147,8 @@ class SupportTicketSystem:
 
                     ticket.status = "resolved_escalated"
                     self.current_step = ticket.status
-                    await workflow.execute_activity(
-                        notify_customer,
-                        args=[ticket.ticket_id, "Your issue required engineering review and has been resolved!"],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    await self._execute_activity(
+                        notify_customer, ticket.ticket_id, "Your issue required engineering review and has been resolved!",
                     )
                     self.steps_completed.append("Escalation successful")
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved after escalation!\n")
@@ -186,11 +157,8 @@ class SupportTicketSystem:
                     # Resolve normally
                     ticket.status = "resolving"
                     self.current_step = ticket.status
-                    resolve_result = await workflow.execute_activity(
-                        agent_resolves_ticket,
-                        ticket.ticket_id,
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    resolve_result = await self._execute_activity(
+                        agent_resolves_ticket, ticket.ticket_id,
                     )
                     self.steps_completed.append("Agent resolving")
                     workflow.logger.info(f"{resolve_result}")
@@ -198,11 +166,8 @@ class SupportTicketSystem:
 
                     ticket.status = "resolved_agent"
                     self.current_step = ticket.status
-                    await workflow.execute_activity(
-                        notify_customer,
-                        args=[ticket.ticket_id, "Your ticket has been resolved!"],
-                        start_to_close_timeout=timedelta(minutes=5),
-                        retry_policy=DEFAULT_RETRY_POLICY,
+                    await self._execute_activity(
+                        notify_customer, ticket.ticket_id, "Your ticket has been resolved!",
                     )
                     self.steps_completed.append("Agent resolved")
                     workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved normally!\n")
@@ -215,11 +180,8 @@ class SupportTicketSystem:
                 # Step 1: Assign senior agent immediately
                 ticket.status = "assigning_senior"
                 self.current_step = ticket.status
-                agent = await workflow.execute_activity(
-                    assign_agent,
-                    args=[ticket.ticket_id, ticket.priority],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                agent = await self._execute_activity(
+                    assign_agent, ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Assigning sr agent")
                 workflow.logger.info(f"Assigned to senior: {agent}")
@@ -229,11 +191,8 @@ class SupportTicketSystem:
                 ticket.status = "escalating"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                esc_result = await workflow.execute_activity(
-                    escalate_to_engineering,
-                    args=[ticket.ticket_id, ticket.issue],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                esc_result = await self._execute_activity(
+                    escalate_to_engineering, ticket.ticket_id, ticket.issue,
                 )
                 self.steps_completed.append("Escalating ticket")
                 workflow.logger.info(f"{esc_result}")
@@ -243,11 +202,9 @@ class SupportTicketSystem:
                 ticket.status = "urgent_fix"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                fix_result = await workflow.execute_activity(
+                fix_result = await self._execute_activity(
                     apply_urgent_fix,
                     args=[ticket.ticket_id],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
                 )
                 self.steps_completed.append("Applying urgent fix")
                 workflow.logger.info(f"{fix_result}")
@@ -257,21 +214,15 @@ class SupportTicketSystem:
                 ticket.status = "notifying"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                await workflow.execute_activity(
-                    notify_customer,
-                    args=[ticket.ticket_id, "Your ticket has been resolved with an engineering fix!"],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                await self._execute_activity(
+                    notify_customer,ticket.ticket_id, "Engineering fixed it!",
                 )
                 self.steps_completed.append("Notifying re ticket")
                 workflow.logger.info(f"Customer notified")
                 await self._wait_if_paused()
 
-                await workflow.execute_activity(
-                    notify_management,
-                    args=[ticket.ticket_id, ticket.priority],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=DEFAULT_RETRY_POLICY,
+                await self._execute_activity(
+                    notify_management,ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Notifying mgmt")
                 workflow.logger.info(f"Management notified")
@@ -290,6 +241,15 @@ class SupportTicketSystem:
             workflow.logger.info(f"Ticket stuck in status: {ticket.status}")
             workflow.logger.info("Manual intervention required!\n")
             return f"Failed: {ticket.ticket_id} - {str(e)}"
+
+    async def _execute_activity(self, activity_call, *args, **kwargs):
+        return await workflow.execute_activity(
+            activity_call,
+            args=list(args),
+            start_to_close_timeout=timedelta(minutes=5),
+            retry_policy=DEFAULT_RETRY_POLICY,
+            **kwargs
+        )
 
     @workflow.query
     def get_status(self) -> dict:
