@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from temporalio import workflow
@@ -26,9 +27,31 @@ with workflow.unsafe.imports_passed_through():
         search_knowledge_base,
     )
 
-@workflow.defn
-class SupportTicketSystem:
+class WorkflowBase:
     def __init__(self):
+        self.is_paused = False
+
+    @workflow.query
+    async def is_paused(self):
+        return self.is_paused
+
+    @workflow.signal
+    async def pause(self):
+        self.is_paused = True
+        workflow.logger.info("Pausing Workflow...")
+
+    @workflow.signal
+    async def resume(self):
+        self.is_paused = False
+        workflow.logger.info("Resuming Workflow...")
+
+    async def _wait_if_paused(self):
+        await workflow.wait_condition(lambda: not self.is_paused)
+
+@workflow.defn
+class SupportTicketSystem(WorkflowBase):
+    def __init__(self):
+        super().__init__()
         self.steps_completed = []
         self.ticket_priority = "Initializing"
         self.current_step = "Initializing"
@@ -49,65 +72,11 @@ class SupportTicketSystem:
         try:
             # LOW PRIORITY PATH
             if ticket.priority == "low":
-                workflow.logger.info("🔵 Taking LOW priority path\n")
-
-                # Step 1: Auto-response
-                ticket.status = "auto_responding"
-                self.current_step = ticket.status
-                auto_result = await self._execute_activity(
-                    send_auto_response,ticket.ticket_id, ticket.customer_name,
+                await workflow.start_child_workflow(
+                    LowPriorityWorkflow.run,
+                    ticket,
+                    id=f"low-{ticket.ticket_id}-{uuid.uuid4()}",
                 )
-                self.steps_completed.append("Auto-response sent")
-                workflow.logger.info(f"Result: {auto_result}")
-                await self._wait_if_paused()
-
-                # Step 2: Search knowledge base
-                ticket.status = "searching_kb"
-                self.current_step = ticket.status
-
-                try:
-                    solution = await self._execute_activity(
-                        search_knowledge_base, ticket.issue,
-                    )
-                    self.steps_completed.append("Searching KB")
-                    await self._wait_if_paused()
-
-                    ticket.status = "resolved_auto"
-                    self.current_step = ticket.status
-                    await self._execute_activity(
-                        notify_customer,ticket.ticket_id, f"Your issue has been resolved! {solution}",
-                    )
-                    self.steps_completed.append("KB success")
-                    workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved automatically!\n")
-                    return f"Resolved automatically: {ticket.ticket_id}"
-
-                except ApplicationError as e:
-                    # KB Search failed -- need human help
-                    workflow.logger.info("No solution found, assigning to agent...")
-                    agent = await self._execute_activity(
-                        assign_agent, ticket.ticket_id, ticket.priority,
-                    )
-                    self.steps_completed.append("KB unsuccessful: agent assigned")
-                    workflow.logger.info(f"Assigned to {agent}")
-                    await self._wait_if_paused()
-
-                    resolve_result = await self._execute_activity(
-                        agent_resolves_ticket,ticket.ticket_id,
-                    )
-                    self.steps_completed.append("Agent investigating, ticket resolved")
-                    workflow.logger.info(f"{resolve_result}")
-                    ticket.status = "resolved_by_agent"
-                    await self._wait_if_paused()
-
-                    ticket.status = "notify_customer"
-                    self.current_step = ticket.status
-                    await self._execute_activity(
-                        notify_customer,
-                        ticket.ticket_id, "Your ticket has been resolved by our team!",
-                    )
-                    self.steps_completed.append("Agent successful")
-                    workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by agent!\n")
-                    return f"Resolved by agent: {ticket.ticket_id}"
 
             # MEDIUM PRIORITY PATH
             elif ticket.priority == "medium":
@@ -116,7 +85,7 @@ class SupportTicketSystem:
                 # Step 1: Assign agent
                 ticket.status = "assigning_agent"
                 self.current_step = ticket.status
-                agent = await self._execute_activity(
+                agent = await _execute_activity(
                     assign_agent,ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Agent investigating")
@@ -126,19 +95,20 @@ class SupportTicketSystem:
                 # Step 2: Investigate
                 ticket.status = "investigating"
                 self.current_step = ticket.status
-                investigation_result = await self._execute_activity(
+                investigation_result = await _execute_activity(
                     investigate_issue, ticket.ticket_id, ticket.issue,
                 )
                 self.steps_completed.append("Agent investigating")
                 workflow.logger.info(f"Investigation: {investigation_result}")
                 await self._wait_if_paused()
 
+                # TODO - Replace this with try/except pattern shown in "low"
                 if investigation_result == "needs_escalation":
                     # Escalate to engineering
                     workflow.logger.info("Issue needs escalation...")
                     ticket.status = "escalating"
                     self.current_step = ticket.status
-                    esc_result = await self._execute_activity(
+                    esc_result = await _execute_activity(
                         escalate_to_engineering, ticket.ticket_id, ticket.issue,
                     )
                     self.steps_completed.append("Escalating ticket")
@@ -147,7 +117,7 @@ class SupportTicketSystem:
 
                     ticket.status = "resolved_escalated"
                     self.current_step = ticket.status
-                    await self._execute_activity(
+                    await _execute_activity(
                         notify_customer, ticket.ticket_id, "Your issue required engineering review and has been resolved!",
                     )
                     self.steps_completed.append("Escalation successful")
@@ -157,7 +127,7 @@ class SupportTicketSystem:
                     # Resolve normally
                     ticket.status = "resolving"
                     self.current_step = ticket.status
-                    resolve_result = await self._execute_activity(
+                    resolve_result = await _execute_activity(
                         agent_resolves_ticket, ticket.ticket_id,
                     )
                     self.steps_completed.append("Agent resolving")
@@ -166,7 +136,7 @@ class SupportTicketSystem:
 
                     ticket.status = "resolved_agent"
                     self.current_step = ticket.status
-                    await self._execute_activity(
+                    await _execute_activity(
                         notify_customer, ticket.ticket_id, "Your ticket has been resolved!",
                     )
                     self.steps_completed.append("Agent resolved")
@@ -180,7 +150,7 @@ class SupportTicketSystem:
                 # Step 1: Assign senior agent immediately
                 ticket.status = "assigning_senior"
                 self.current_step = ticket.status
-                agent = await self._execute_activity(
+                agent = await _execute_activity(
                     assign_agent, ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Assigning sr agent")
@@ -191,7 +161,7 @@ class SupportTicketSystem:
                 ticket.status = "escalating"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                esc_result = await self._execute_activity(
+                esc_result = await _execute_activity(
                     escalate_to_engineering, ticket.ticket_id, ticket.issue,
                 )
                 self.steps_completed.append("Escalating ticket")
@@ -202,7 +172,7 @@ class SupportTicketSystem:
                 ticket.status = "urgent_fix"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                fix_result = await self._execute_activity(
+                fix_result = await _execute_activity(
                     apply_urgent_fix,
                     args=[ticket.ticket_id],
                 )
@@ -214,14 +184,14 @@ class SupportTicketSystem:
                 ticket.status = "notifying"
                 self.current_step = ticket.status
                 await self._wait_if_paused()
-                await self._execute_activity(
+                await _execute_activity(
                     notify_customer,ticket.ticket_id, "Engineering fixed it!",
                 )
                 self.steps_completed.append("Notifying re ticket")
                 workflow.logger.info(f"Customer notified")
                 await self._wait_if_paused()
 
-                await self._execute_activity(
+                await _execute_activity(
                     notify_management,ticket.ticket_id, ticket.priority,
                 )
                 self.steps_completed.append("Notifying mgmt")
@@ -242,15 +212,6 @@ class SupportTicketSystem:
             workflow.logger.info("Manual intervention required!\n")
             return f"Failed: {ticket.ticket_id} - {str(e)}"
 
-    async def _execute_activity(self, activity_call, *args, **kwargs):
-        return await workflow.execute_activity(
-            activity_call,
-            args=list(args),
-            start_to_close_timeout=timedelta(minutes=5),
-            retry_policy=DEFAULT_RETRY_POLICY,
-            **kwargs
-        )
-
     @workflow.query
     def get_status(self) -> dict:
         return {
@@ -260,15 +221,93 @@ class SupportTicketSystem:
             "current_step_number": len(self.steps_completed),
         }
 
-    @workflow.signal
-    def pause(self):
-        self.is_paused = True
-        workflow.logger.info("Pausing Workflow...")
 
-    @workflow.signal
-    def resume(self):
-        self.is_paused = False
-        workflow.logger.info("Resuming Workflow...")
+async def _execute_activity(activity_call, *args, **kwargs):
+    return await workflow.execute_activity(
+        activity_call,
+        args=list(args),
+        start_to_close_timeout=timedelta(minutes=5),
+        retry_policy=DEFAULT_RETRY_POLICY,
+        **kwargs
+    )
 
-    async def _wait_if_paused(self):
-        await workflow.wait_condition(lambda: not self.is_paused)
+@workflow.defn
+class LowPriorityWorkflow(WorkflowBase):
+    def __init__(self, steps_completed):
+        super().__init__()
+        self.steps_completed = steps_completed
+
+    @workflow.run
+    async def run(self, ticket: Ticket):
+        workflow.logger.info("Starting low-priority workflow...")
+        workflow.logger.info("🔵 Taking LOW priority path\n")
+
+        # Step 1: Auto-response
+        ticket.status = "auto_responding"
+        self.current_step = ticket.status
+        auto_result = await _execute_activity(
+            send_auto_response, ticket.ticket_id, ticket.customer_name,
+        )
+        self.steps_completed.append("Auto-response sent")
+        workflow.logger.info(f"Result: {auto_result}")
+        await self._wait_if_paused()
+
+        # Step 2: Search knowledge base
+        ticket.status = "searching_kb"
+        self.current_step = ticket.status
+
+        try:
+            solution = await _execute_activity(
+                search_knowledge_base, ticket.issue,
+            )
+            self.steps_completed.append("Searching KB")
+            await self._wait_if_paused()
+
+            ticket.status = "resolved_auto"
+            self.current_step = ticket.status
+            await _execute_activity(
+                notify_customer, ticket.ticket_id, f"Your issue has been resolved! {solution}",
+            )
+            self.steps_completed.append("KB success")
+            workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved automatically!\n")
+            return f"Resolved automatically: {ticket.ticket_id}"
+
+        except ApplicationError as e:
+            # KB Search failed -- need human help
+            workflow.logger.info("No solution found, assigning to agent...")
+            agent = await _execute_activity(
+                assign_agent, ticket.ticket_id, ticket.priority,
+            )
+            self.steps_completed.append("KB unsuccessful: agent assigned")
+            workflow.logger.info(f"Assigned to {agent}")
+            await self._wait_if_paused()
+
+            resolve_result = await _execute_activity(
+                agent_resolves_ticket, ticket.ticket_id,
+            )
+            self.steps_completed.append("Agent investigating, ticket resolved")
+            workflow.logger.info(f"{resolve_result}")
+            ticket.status = "resolved_by_agent"
+            await self._wait_if_paused()
+
+            ticket.status = "notify_customer"
+            self.current_step = ticket.status
+            await _execute_activity(
+                notify_customer,
+                ticket.ticket_id, "Your ticket has been resolved by our team!",
+            )
+            self.steps_completed.append("Agent successful")
+            workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by agent!\n")
+            return f"Resolved by agent: {ticket.ticket_id}"
+
+@workflow.defn
+class MediumPriorityWorkflow:
+    @workflow.run
+    async def run(self):
+        workflow.logger.info("Starting medium-priority workflow...")
+
+class HighPriorityWorkflow:
+    @workflow.run
+    async def run(self):
+        workflow.logger.info("Starting high-priority workflow...")
+
