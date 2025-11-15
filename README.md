@@ -74,4 +74,8 @@ This is just a quick demonstration of Temporal's capabilities. In the future, I'
 - Heartbeats from long-running tasks
 - Compensation activities for failed steps (if an agent takes too long to respond and we need to reassign, etc)
 - Demonstration of race condition handling during API/db calls
+- ~~Need to break up the main workflow into low/med/high child workflows~~
+- Need to fix the Medium priority flow to use exceptions like the low flow
+- ~~Break up monolithic workflow into parent/child~~
+- Break up workers by functionality, not workflow activities
 - ~~Need to reduce the amount of code in the workflow--much of it is repetitive and boilerplate~~

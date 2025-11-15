@@ -45,10 +45,10 @@ async def main():
     # Process tickets concurrently (show Temporal's power!)
     handles = []
     for i, ticket in enumerate(tickets, 1):
-        workflow_id = f"comparison-{ticket.ticket_id}-{uuid.uuid4()}"
+        workflow_id = f"ticket-{ticket.priority}-{ticket.ticket_id}-{uuid.uuid4()}"
         handle = await client.start_workflow(
-            SupportTicketSystem.process_ticket,
-            args=[ticket],
+            SupportTicketSystem.run,
+            ticket,
             id=workflow_id,
             task_queue="ticket-tasks",
         )
