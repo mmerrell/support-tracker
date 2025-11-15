@@ -34,7 +34,7 @@ async def interactive_pause_resume_demo():
             SupportTicketSystem.process_ticket,
             args=[ticket],
             id=workflow_id,
-            task_queue="ticket-tasks",
+            task_queue="workflows",
         )
 
         print("Workflow started! Now...")

@@ -50,7 +50,7 @@ async def main():
             SupportTicketSystem.run,
             ticket,
             id=workflow_id,
-            task_queue="ticket-tasks",
+            task_queue="workflows",
         )
         handles.append((handle, ticket, time.time()))
         print(f"🚀 Started workflow {i}/{len(tickets)}: {ticket.ticket_id} ({ticket.priority.upper()})")

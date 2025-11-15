@@ -103,7 +103,7 @@ async def run_temporal_version():
                 SupportTicketSystem.process_ticket,
                 args=[ticket],
                 id=workflow_id,
-                task_queue="ticket-tasks",
+                task_queue="workflows",
             )
             handles.append((handle, ticket, time.time()))
             print(f"🚀 Started workflow {i}/6: {ticket.ticket_id} ({ticket.priority.upper()})")

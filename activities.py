@@ -39,7 +39,7 @@ async def assign_agent(ticket_id: str, priority: str) -> str:
     return agent_name
 
 @activity.defn
-async def investigate_issue(ticket_id: str, issue: str) -> str:
+async def agent_investigate(ticket_id: str, issue: str) -> str:
     """Agent investigates the issue"""
     activity.logger.info(f"Agent investigating ticket {ticket_id}: {issue}")
     await asyncio.sleep(7)
@@ -51,7 +51,7 @@ async def investigate_issue(ticket_id: str, issue: str) -> str:
     return "investigation_complete"
 
 @activity.defn
-async def agent_resolves_ticket(ticket_id: str) -> str:
+async def agent_resolve(ticket_id: str) -> str:
     """Agent resolves the ticket"""
     activity.logger.info(f"Agent resolving ticket {ticket_id}")
     await asyncio.sleep(7)
