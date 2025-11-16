@@ -8,7 +8,7 @@ This repository demonstrates two versions of a traditional ticketing support sys
   - `activities.py` - Temporal Activities
   - `client.py` - Script that puts tickets through the workflow
   - `models.py` - @dataclasses
-  - `base_workflow.py` - Base workflow, with pause/resume, status query, and activity helpers
+  - `base_workflow.py` - Base workflow, with activity helpers
   - `workflow.py` - The main Temporal workflow
   - `worker.py` - The Temporal worker
   - `client.py` - For running tickets through the Temporal workflow from the cli
@@ -35,13 +35,17 @@ In one terminal, start the Temporal worker:
 python original_system.py
 ```
 
-### Run the Temporal workflow by itself
+### Run a comparison between the original Python and  Temporal workflows
+```bash
+python comparison_demo.py
+```
+
+### Run the Temporal workflow
 ```bash
 python client.py
 ```
 
 ### Bugs
-- ~~The "pause" mechanism wait for the status to change to the next step for actually pausing the workflow. This gave a misleading indication of the actual state of the workflow~~
 - The workflow_id should be the ticket_id, rather than "ticket_id-uuid4". This would help Temporal to force the primary key constraint on ticket id. But it's possible this is an anti-pattern--I can understand why that should only be enforced at the db layer (separation of concerns)
 - Critical - The "knowledge base failed" workflow (LowPriority) path is failing -- needs investigation
 
