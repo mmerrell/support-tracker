@@ -9,14 +9,14 @@ from models import Ticket
 @activity.defn
 async def send_auto_response(ticket: Ticket) -> str:
     """Send automated acknowledgment"""
-    activity.logger.info(f"Sending auto-response to {ticket.customer_name} for ticket {ticket.ticket_id}")
+    activity.logger.debug(f"Sending auto-response to {ticket.customer_name} for ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
     return f"Auto-response sent to {ticket.customer_name}"
 
 @activity.defn
 async def search_knowledge_base(ticket: Ticket) -> str:
     """Search knowledge base for solution"""
-    activity.logger.info(f"Searching knowledge base for: {ticket.issue}")
+    activity.logger.debug(f"Searching knowledge base for: {ticket.issue}")
     await asyncio.sleep(7)
 
     # Sometimes no solution found
@@ -29,7 +29,7 @@ async def search_knowledge_base(ticket: Ticket) -> str:
 async def assign_agent(ticket: Ticket) -> str:
     """Assign ticket to agent"""
     agent_type = "senior" if ticket.priority == "high" else "regular"
-    activity.logger.info(f"Assigning {agent_type} agent to ticket {ticket.ticket_id}")
+    activity.logger.debug(f"Assigning {agent_type} agent to ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
 
     # Sometimes no agents available
@@ -42,7 +42,7 @@ async def assign_agent(ticket: Ticket) -> str:
 @activity.defn
 async def agent_investigate(ticket: Ticket) -> str:
     """Agent investigates the issue"""
-    activity.logger.info(f"Agent investigating ticket {ticket.ticket_id}: {ticket.issue}")
+    activity.logger.debug(f"Agent investigating ticket {ticket.ticket_id}: {ticket.issue}")
     await asyncio.sleep(7)
 
     # Sometimes needs escalation
@@ -54,7 +54,7 @@ async def agent_investigate(ticket: Ticket) -> str:
 @activity.defn
 async def agent_resolve(ticket: Ticket) -> str:
     """Agent resolves the ticket"""
-    activity.logger.info(f"Agent resolving ticket {ticket.ticket_id}")
+    activity.logger.debug(f"Agent resolving ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
     if random.random() < 0.2:
         raise ApplicationError("Agent could not resolve, reassigning to another agent")
@@ -64,7 +64,7 @@ async def agent_resolve(ticket: Ticket) -> str:
 @activity.defn
 async def escalate_to_engineering(ticket: Ticket) -> str:
     """Escalate to engineering team"""
-    activity.logger.info(f"Escalating ticket {ticket.ticket_id} to engineering: {ticket.issue}")
+    activity.logger.debug(f"Escalating ticket {ticket.ticket_id} to engineering: {ticket.issue}")
     await asyncio.sleep(7)
     # Sometimes the engineering team punts to the backlog
     if random.random() < 0.2:
@@ -75,7 +75,7 @@ async def escalate_to_engineering(ticket: Ticket) -> str:
 @activity.defn
 async def apply_urgent_fix(ticket: Ticket) -> str:
     """Apply urgent fix for high priority issues"""
-    activity.logger.info(f"Applying urgent fix for ticket {ticket.ticket_id}")
+    activity.logger.debug(f"Applying urgent fix for ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
 
     # Sometimes fix fails
@@ -87,11 +87,11 @@ async def apply_urgent_fix(ticket: Ticket) -> str:
 @activity.defn
 async def notify_customer(ticket: Ticket, message: str) -> None:
     """Notify customer of resolution"""
-    activity.logger.info(f"Notifying {ticket.customer_name}: {message}")
-    await asyncio.sleep(1)
+    activity.logger.debug(f"Notifying {ticket.customer_name}: {message}")
+    await asyncio.sleep(3)
 
 @activity.defn
 async def notify_management(ticket: Ticket):
     """Notify management for high priority tickets"""
-    activity.logger.info(f"Notifying management about {ticket.priority} priority ticket {ticket.ticket_id}")
-    await asyncio.sleep(1)
+    activity.logger.debug(f"Notifying management about {ticket.priority} priority ticket {ticket.ticket_id}")
+    await asyncio.sleep(4)

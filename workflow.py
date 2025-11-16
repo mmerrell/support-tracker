@@ -12,7 +12,6 @@ class SupportTicketSystem(WorkflowBase):
             if ticket.priority == "low":
                 workflow.logger.info("🔵 LOW priority ticket {ticket.ticket_id}: {ticket.issue}\n"
                              f"Priority: {ticket.priority.upper()} | Customer: {ticket.customer_name}\n")
-                ticket.status = "auto_responding"
                 await self.do_send_auto_response(ticket)
 
                 result = await workflow.execute_child_workflow(
@@ -63,12 +62,9 @@ class LowPriorityWorkflow(WorkflowBase):
     @workflow.run
     async def run(self, ticket: Ticket):
         workflow.logger.debug(f"{ticket.ticket_id} Starting low-priority workflow...")
-
-        ticket.status = "auto_responding"
         await self.do_send_auto_response(ticket)
 
         try:
-            ticket.status = "searching_kb"
             solution = await self.do_search_knowledge_base(ticket)
             await self.do_notify_customer(ticket, solution)
 
@@ -77,14 +73,12 @@ class LowPriorityWorkflow(WorkflowBase):
 
         except ActivityError:
             # KB Search failed -- need human help
-            workflow.logger.info(f"{ticket.ticket_id} No solution found in knowledge base, assigning to agent...")
+            workflow.logger.debug(f"{ticket.ticket_id} No solution found in knowledge base, assigning to agent...")
             await self.do_assign_agent(ticket)
-
             await self.do_agent_resolve(ticket)
-            ticket.status = "resolved_by_agent"
-
             await self.do_notify_customer(ticket, "Your ticket has been resolved by our team!")
 
+            ticket.status = "resolved_low"
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by agent!\n")
             return f"Resolved by agent: {ticket.ticket_id}"
 
@@ -94,23 +88,18 @@ class MediumPriorityWorkflow(WorkflowBase):
     async def run(self, ticket: Ticket):
         workflow.logger.debug("Starting medium-priority workflow...")
 
-        ticket.status = "assigning_agent"
         await self.do_assign_agent(ticket)
-
-        ticket.status = "investigating"
         assignment_result = await self.do_agent_investigate(ticket)
         if assignment_result != "agent_unavailable":
-            ticket.status = "resolved_escalated"
             await self.do_notify_customer(ticket, f"Your issue has been resolved by {assignment_result}!")
 
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved after investigation!\n")
             return f"Resolved with investigation: {ticket.ticket_id}"
 
-        workflow.logger.info("Investigation failed, escalate to engineering")
-        ticket.status = "resolving"
+        workflow.logger.debug("Investigation failed, escalate to engineering")
         esc_result = await self.do_escalate_to_engineering(ticket)
         if esc_result == "Engineering rejected":
-            workflow.logger.info("Engineering rejected - reassigning to agent for further investigation")
+            workflow.logger.debug("Engineering rejected - reassigning to agent for further investigation")
             try:
                 await self.do_assign_agent(ticket)
                 final_result = await self.do_agent_resolve(ticket)
@@ -118,14 +107,14 @@ class MediumPriorityWorkflow(WorkflowBase):
                 return f"✅ SUCCESS: Resolved by agent after engineering review: {ticket.ticket_id}, {final_result}"
 
             except ActivityError:
-                workflow.logger.info("Agent could not resolve--notifying management")
+                workflow.logger.debug("Agent could not resolve--notifying management")
                 await self.do_notify_customer(ticket, "This issue required engineering review, but no agent could resolve")
                 await self.do_notify_management(ticket)
                 return f"❌ FAILURE: Agent unable to resolve, management notified"
 
         else:
+            ticket.status = "resolved_medium"
             await self.do_notify_customer(ticket, "Resolved by engineering after escalation")
-            ticket.status = "resolved medium"
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by engineering!\n")
             return f"Resolved by engineering: {ticket.ticket_id}"
 
@@ -134,25 +123,22 @@ class HighPriorityWorkflow(WorkflowBase):
     @workflow.run
     async def run(self, ticket: Ticket):
         workflow.logger.debug("Starting high-priority workflow...")
-        ticket.status = "assigning_senior_agent"
-        workflow.logger.info(f"Assigning to senior agent...")
+
+        workflow.logger.debug(f"Assigning to senior agent...")
         await self.do_assign_agent(ticket)
 
-        ticket.status = "escalating"
         esc_result = await self.do_escalate_to_engineering(ticket)
-        workflow.logger.info(f"{esc_result}")
+        workflow.logger.debug(f"{esc_result}")
 
-        ticket.status = "urgent_fix"
         fix_result = await self.do_apply_urgent_fix(ticket)
-        workflow.logger.info(f"Urgent Fix result: {fix_result}")
+        workflow.logger.debug(f"Urgent Fix result: {fix_result}")
         if fix_result == "Urgent Fix failed!":
-            workflow.logger.info(f"❌ FAILURE: Could not resolve with urgent fix: {fix_result}. Adding ticket to backlog")
+            workflow.logger.error(f"❌ FAILURE: Could not resolve with urgent fix: {fix_result}. Adding ticket to backlog")
             await self.do_notify_management(ticket)
 
-        ticket.status = "notifying everyone..."
+        ticket.status = "resolved_high"
         await self.do_notify_customer(ticket, "Engineering fixed it!")
         await self.do_notify_management(ticket)
-        ticket.status = "resolved_urgent"
 
         workflow.logger.info(f"\n✅ SUCCESS: HIGH priority ticket {ticket.ticket_id} resolved!\n")
         return f"Resolved urgently: {ticket.ticket_id}"

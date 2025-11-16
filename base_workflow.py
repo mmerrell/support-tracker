@@ -39,6 +39,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"{resolve_result}")
+        ticket.status = "resolved_by_agent"
         return resolve_result
 
     async def do_assign_agent(self, ticket) -> str:
@@ -47,6 +48,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"Assignment result: {assignment_result}")
+        ticket.status = "assigning_agent"
         return assignment_result
 
     async def do_notify_customer(self, ticket, message: str):
@@ -62,6 +64,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"KB search successful: {solution}")
+        ticket.status = "searching_kb"
         return solution
 
     async def do_send_auto_response(self, ticket) -> str:
@@ -70,6 +73,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"Result: {auto_result}")
+        ticket.status = "auto_responding"
         return auto_result
 
     async def do_escalate_to_engineering(self, ticket) -> str:
@@ -78,6 +82,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"{esc_result}")
+        ticket.status = "escalating_to_engineering"
         return esc_result
 
     async def do_agent_investigate(self, ticket) -> str:
@@ -86,6 +91,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"Investigation: {investigation_result}")
+        ticket.status = investigation_result
         return investigation_result
 
     async def do_notify_management(self, ticket):
@@ -101,4 +107,5 @@ class WorkflowBase:
             task_queue="engineering",
         )
         workflow.logger.debug(f"Applying urgent fix result: {fix_result}")
+        ticket.status = fix_result
         return fix_result
