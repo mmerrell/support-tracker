@@ -74,6 +74,7 @@ moment.
 - ✅ Break up monolithic workflow into parent/child
 - ✅ Need to reduce the amount of code in the workflow--much of it is repetitive and boilerplate
 - ✅ Group workers by where they exist in the org (support, internal, eng), not the nature of the worklows
+- ✅ Need to refactor activity calls to encapsulate the repetitive utilities (pausing, steps, logging, queues)
 
 ## Improvement I'd like to make
 - More nuanced retry mechanisms
@@ -81,4 +82,3 @@ moment.
 - Compensation activities for failed steps (if an agent takes too long to respond and we need to reassign, etc)
 - Demonstration of race condition handling during API/db calls
 - Need to fix the Medium priority flow to use exceptions like the low flow
-- Need to refactor activity calls to encapsulate the repetitive utilities (pausing, steps, logging, queues)
