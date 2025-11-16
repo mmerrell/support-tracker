@@ -66,3 +66,4 @@ python client.py
 - Demonstration of race condition handling during API/db calls
 - Pause/resume workflow - splitting parent/child workflows broke this--need to bring it back
 - Real-time status queries
+- Can I suppress stacktraces from logs?

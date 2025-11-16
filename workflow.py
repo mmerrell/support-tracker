@@ -12,7 +12,6 @@ class SupportTicketSystem(WorkflowBase):
             if ticket.priority == "low":
                 workflow.logger.info("🔵 LOW priority ticket {ticket.ticket_id}: {ticket.issue}\n"
                              f"Priority: {ticket.priority.upper()} | Customer: {ticket.customer_name}\n")
-                await self.do_send_auto_response(ticket)
 
                 result = await workflow.execute_child_workflow(
                     LowPriorityWorkflow.run,
@@ -78,7 +77,7 @@ class LowPriorityWorkflow(WorkflowBase):
             await self.do_agent_resolve(ticket)
             await self.do_notify_customer(ticket, "Your ticket has been resolved by our team!")
 
-            ticket.status = "resolved_low"
+            ticket.status = "resolved"
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by agent!\n")
             return f"Resolved by agent: {ticket.ticket_id}"
 
@@ -113,9 +112,10 @@ class MediumPriorityWorkflow(WorkflowBase):
                 return f"❌ FAILURE: Agent unable to resolve, management notified"
 
         else:
-            ticket.status = "resolved_medium"
             await self.do_notify_customer(ticket, "Resolved by engineering after escalation")
+
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved by engineering!\n")
+            ticket.status = "resolved"
             return f"Resolved by engineering: {ticket.ticket_id}"
 
 @workflow.defn
@@ -129,13 +129,14 @@ class HighPriorityWorkflow(WorkflowBase):
 
         fix_result = await self.do_apply_urgent_fix(ticket)
         workflow.logger.debug(f"{ticket.ticket_id} Urgent Fix result: {fix_result}")
-        if fix_result == "Urgent Fix failed!":
-            workflow.logger.error(f"❌ FAILURE: Could not resolve with urgent fix: {fix_result}. Adding ticket to backlog")
+        if fix_result == "fix_failed":
+            workflow.logger.error(f"❌ FAILURE: Could not resolve with urgent fix. Adding ticket to backlog")
+            await self.do_notify_customer(ticket, "Engineering unable to resolve -- we will follow up soon!")
+            await self.do_notify_management(ticket)
+        else:
+            await self.do_notify_customer(ticket, "Engineering fixed it!")
             await self.do_notify_management(ticket)
 
-        ticket.status = "resolved_high"
-        await self.do_notify_customer(ticket, "Engineering fixed it!")
-        await self.do_notify_management(ticket)
-
-        workflow.logger.info(f"\n✅ SUCCESS: HIGH priority ticket {ticket.ticket_id} resolved!\n")
-        return f"Resolved urgently: {ticket.ticket_id}"
+            workflow.logger.info(f"\n✅ SUCCESS: HIGH priority ticket {ticket.ticket_id} resolved!\n")
+            ticket.status = "resolved"
+            return f"Resolved urgently: {ticket.ticket_id}"

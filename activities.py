@@ -80,9 +80,9 @@ async def apply_urgent_fix(ticket: Ticket) -> str:
 
     # Sometimes fix fails
     if random.random() < 0.1:
-        return "Urgent fix failed!"
+        return "fix_failed"
 
-    return "Urgent fix applied"
+    return "fix_succeeded"
 
 @activity.defn
 async def notify_customer(ticket: Ticket, message: str) -> None:
