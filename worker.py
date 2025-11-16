@@ -14,7 +14,7 @@ from activities import (
     agent_investigate,
     send_auto_response,
     search_knowledge_base,
-    )
+)
 
 import logging
 

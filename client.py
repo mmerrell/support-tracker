@@ -19,7 +19,7 @@ async def main():
         Ticket("TEMP-009", "Mr Krab", "Email notifications not working", "low", "initialized"),
         Ticket("TEMP-010", "Kevin Flynn", "Email notifications not working", "low", "initialized"),
         Ticket("TEMP-011", "Edward Dillinger", "Email notifications not working", "low", "initialized"),
-        Ticket("TEMP-012", "Alan-1", "Email notifications not working", "low", "initialized"),
+        Ticket("TEMP-012", "Quorra", "Matrix syndrome", "low", "initialized"),
         Ticket("TEMP-013", "Wendy Carlos", "Ahead of her time", "high", "initialized"),
         Ticket("TEMP-014", "Trent Reznor", "Excessive talent", "medium", "initialized"),
         Ticket("TEMP-015", "Atticus Ross", "Misunderstood in his time", "low", "initialized"),

@@ -66,6 +66,7 @@ moment.
 ### Bugs
 - ~~The "pause" mechanism wait for the status to change to the next step for actually pausing the workflow. This gave a misleading indication of the actual state of the workflow~~
 - The workflow_id should be the ticket_id, rather than "ticket_id-uuid4". This would help Temporal to force the primary key constraint on ticket id. But it's possible this is an anti-pattern--I can understand why that should only be enforced at the db layer (separation of concerns)
+- Critical - The "knowledge base failed" workflow (LowPriority) path is failing -- needs investigation
 
 ### Improvements made since Nov 12:
 - ✅ Looking at it again, the if/else block for the knowledge base search needs more Temporal-idiomatic structure
