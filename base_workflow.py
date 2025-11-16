@@ -42,12 +42,12 @@ class WorkflowBase:
         return resolve_result
 
     async def do_assign_agent(self, ticket) -> str:
-        agent = await self._execute_activity(
+        assignment_result = await self._execute_activity(
             assign_agent, ticket,
             task_queue="internal",
         )
-        workflow.logger.debug(f"Assigned to {agent}")
-        return agent
+        workflow.logger.debug(f"Assignment result: {assignment_result}")
+        return assignment_result
 
     async def do_notify_customer(self, ticket, message: str):
         await self._execute_activity(

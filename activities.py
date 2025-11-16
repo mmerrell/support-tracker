@@ -34,7 +34,7 @@ async def assign_agent(ticket: Ticket) -> str:
 
     # Sometimes no agents available
     if random.random() < 0.15:
-        raise ApplicationError("No agents available! Retrying...")
+        return "agent_unavailable"
 
     agent_name = "Agent-" + str(random.randint(100, 999))
     return agent_name

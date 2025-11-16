@@ -49,6 +49,7 @@ python client.py
 - The workflow_id should be the ticket_id, rather than "ticket_id-uuid4", but it makes for nightmarish demos. This can be fixed once there's a database with a proper sequence
 - ~~Critical - The "knowledge base failed" workflow (LowPriority) path is failing~~
 - ~~Critical - The "no agents available" workflow (HighPriority) path is failing -- needs investigation~~
+- Urgent - When "agent reassignment" fails 3 times workflow (LowPriority), the child workflow fails, and doesn't follow the ApplicationError flow. Need advice on best practices. Happens 1 in ~30 times
 
 ### Improvements made since Nov 12:
 - ✅ Workflow refinements, adding some ApplicationErrors to handle flow rather than if/then
