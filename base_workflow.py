@@ -33,12 +33,13 @@ class WorkflowBase:
         )
 
     # Activity wrappers - simplifies workflow code while unifying activity invocation
-    async def do_agent_resolve(self, ticket):
+    async def do_agent_resolve(self, ticket) -> str:
         resolve_result = await self._execute_activity(
             agent_resolve, ticket,
             task_queue="support",
         )
         workflow.logger.debug(f"{resolve_result}")
+        return resolve_result
 
     async def do_assign_agent(self, ticket) -> str:
         agent = await self._execute_activity(
@@ -100,3 +101,4 @@ class WorkflowBase:
             task_queue="engineering",
         )
         workflow.logger.debug(f"Applying urgent fix result: {fix_result}")
+        return fix_result

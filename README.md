@@ -46,20 +46,22 @@ python client.py
 ```
 
 ### Bugs
-- The workflow_id should be the ticket_id, rather than "ticket_id-uuid4". This would help Temporal to force the primary key constraint on ticket id. But it's possible this is an anti-pattern--I can understand why that should only be enforced at the db layer (separation of concerns)
-- Critical - The "knowledge base failed" workflow (LowPriority) path is failing -- needs investigation
+- The workflow_id should be the ticket_id, rather than "ticket_id-uuid4", but it makes for nightmarish demos. This can be fixed once there's a database with a proper sequence
+- ~~Critical - The "knowledge base failed" workflow (LowPriority) path is failing~~
+- ~~Critical - The "no agents available" workflow (HighPriority) path is failing -- needs investigation~~
 
 ### Improvements made since Nov 12:
-- ✅ Looking at it again, the if/else block for the knowledge base search needs more Temporal-idiomatic structure
+- ✅ Workflow refinements, adding some ApplicationErrors to handle flow rather than if/then
 - ✅ Need to break up the main workflow into low/med/high child workflows
 - ✅ Break up monolithic workflow into parent/child
 - ✅ Need to reduce the amount of code in the workflow--much of it is repetitive and boilerplate
 - ✅ Group workers by where they exist in the org (support, internal, eng), not the nature of the worklows
-- ✅ Need to refactor activity calls to encapsulate the repetitive utilities (pausing, steps, logging, queues)
+- ✅ Need to refactor activity calls to encapsulate the repetitive utilities (activities, logging, queues)
 
 ## Improvement I'd like to make
 - More nuanced retry mechanisms
 - Heartbeats from long-running tasks
 - Compensation activities for failed steps (if an agent takes too long to respond and we need to reassign, etc)
 - Demonstration of race condition handling during API/db calls
-- Need to fix the Medium priority flow to use exceptions like the low flow
+- Pause/resume workflow
+- Real-time status queries

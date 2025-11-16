@@ -34,7 +34,7 @@ async def assign_agent(ticket: Ticket) -> str:
 
     # Sometimes no agents available
     if random.random() < 0.15:
-        raise Exception("No agents available!")
+        raise ApplicationError("No agents available! Retrying...")
 
     agent_name = "Agent-" + str(random.randint(100, 999))
     return agent_name
@@ -57,7 +57,7 @@ async def agent_resolve(ticket: Ticket) -> str:
     activity.logger.info(f"Agent resolving ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
     if random.random() < 0.2:
-        raise Exception("Agent could not accept, reassigning")
+        raise ApplicationError("Agent could not resolve, reassigning to another agent")
 
     return "Ticket resolved by agent"
 
@@ -68,9 +68,9 @@ async def escalate_to_engineering(ticket: Ticket) -> str:
     await asyncio.sleep(7)
     # Sometimes the engineering team punts to the backlog
     if random.random() < 0.2:
-        raise Exception("Engineering team rejected")
+        return "Engineering team rejected"
 
-    return "Escalated to engineering"
+    return "Engineering accepted"
 
 @activity.defn
 async def apply_urgent_fix(ticket: Ticket) -> str:
@@ -80,7 +80,7 @@ async def apply_urgent_fix(ticket: Ticket) -> str:
 
     # Sometimes fix fails
     if random.random() < 0.1:
-        raise Exception("Urgent fix failed!")
+        return "Urgent fix failed!"
 
     return "Urgent fix applied"
 
