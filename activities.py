@@ -65,12 +65,12 @@ async def agent_resolve(ticket: Ticket) -> str:
 async def escalate_to_engineering(ticket: Ticket) -> str:
     """Escalate to engineering team"""
     activity.logger.debug(f"Escalating ticket {ticket.ticket_id} to engineering: {ticket.issue}")
-    await asyncio.sleep(7)
+    await asyncio.sleep(30)
     # Sometimes the engineering team punts to the backlog
     if random.random() < 0.2:
-        return "Engineering team rejected"
+        return "engineering_rejected"
 
-    return "Engineering accepted"
+    return "engineering_accepted"
 
 @activity.defn
 async def apply_urgent_fix(ticket: Ticket) -> str:

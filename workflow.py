@@ -86,7 +86,7 @@ class LowPriorityWorkflow(WorkflowBase):
 class MediumPriorityWorkflow(WorkflowBase):
     @workflow.run
     async def run(self, ticket: Ticket):
-        workflow.logger.debug("Starting medium-priority workflow...")
+        workflow.logger.debug(f"{ticket.ticket_id} Starting medium-priority workflow...")
 
         await self.do_assign_agent(ticket)
         assignment_result = await self.do_agent_investigate(ticket)
@@ -96,10 +96,10 @@ class MediumPriorityWorkflow(WorkflowBase):
             workflow.logger.info(f"\n✅ SUCCESS: Ticket {ticket.ticket_id} resolved after investigation!\n")
             return f"Resolved with investigation: {ticket.ticket_id}"
 
-        workflow.logger.debug("Investigation failed, escalate to engineering")
+        workflow.logger.debug(f"{ticket.ticket_id} Investigation failed, escalate to engineering")
         esc_result = await self.do_escalate_to_engineering(ticket)
-        if esc_result == "Engineering rejected":
-            workflow.logger.debug("Engineering rejected - reassigning to agent for further investigation")
+        if esc_result == "Engineering team rejected":
+            workflow.logger.debug(f"{ticket.ticket_id} Engineering rejected - reassigning to agent for further investigation")
             try:
                 await self.do_assign_agent(ticket)
                 final_result = await self.do_agent_resolve(ticket)
@@ -107,7 +107,7 @@ class MediumPriorityWorkflow(WorkflowBase):
                 return f"✅ SUCCESS: Resolved by agent after engineering review: {ticket.ticket_id}, {final_result}"
 
             except ActivityError:
-                workflow.logger.debug("Agent could not resolve--notifying management")
+                workflow.logger.debug(f"{ticket.ticket_id} Agent could not resolve--notifying management")
                 await self.do_notify_customer(ticket, "This issue required engineering review, but no agent could resolve")
                 await self.do_notify_management(ticket)
                 return f"❌ FAILURE: Agent unable to resolve, management notified"
@@ -122,16 +122,13 @@ class MediumPriorityWorkflow(WorkflowBase):
 class HighPriorityWorkflow(WorkflowBase):
     @workflow.run
     async def run(self, ticket: Ticket):
-        workflow.logger.debug("Starting high-priority workflow...")
-
-        workflow.logger.debug(f"Assigning to senior agent...")
+        workflow.logger.debug(f"{ticket.ticket_id} Starting high-priority workflow...")
         await self.do_assign_agent(ticket)
-
         esc_result = await self.do_escalate_to_engineering(ticket)
-        workflow.logger.debug(f"{esc_result}")
+        workflow.logger.debug(f"{ticket.ticket_id}: {esc_result}")
 
         fix_result = await self.do_apply_urgent_fix(ticket)
-        workflow.logger.debug(f"Urgent Fix result: {fix_result}")
+        workflow.logger.debug(f"{ticket.ticket_id} Urgent Fix result: {fix_result}")
         if fix_result == "Urgent Fix failed!":
             workflow.logger.error(f"❌ FAILURE: Could not resolve with urgent fix: {fix_result}. Adding ticket to backlog")
             await self.do_notify_management(ticket)
