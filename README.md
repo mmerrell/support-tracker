@@ -8,17 +8,17 @@ This repository demonstrates two versions of a traditional ticketing support sys
   - `activities.py` - Temporal Activities
   - `client.py` - Script that puts tickets through the workflow
   - `models.py` - @dataclasses
+  - `base_workflow.py` - Base workflow, with pause/resume, status query, and activity helpers
   - `workflow.py` - The main Temporal workflow
   - `worker.py` - The Temporal worker
   - `client.py` - For running tickets through the Temporal workflow from the cli
   - `requirements.txt` - Python dependencies. Namely temporal.
   - `start_worker.sh` - script that starts the Temporal worker within a virtual env
-  - `run_demo.sh` - script that runs the comparison demo within a virtual env
 
 ## Prerequisites
 - I have only tested this on a Mac ARM laptop--I would think it works on Windows, except that the python commands are bound to be different
 - Python 3.8+
-- Temporal server running (scripts assume localhost:7233 -- edit worker.py, comparison_demo.py and client.py to change)
+- Temporal server running (scripts assume localhost:7233 -- edit worker.py and client.py to change)
 - `pip install temporalio`
 
 ## Initialize the environment
@@ -30,9 +30,6 @@ This repository demonstrates two versions of a traditional ticketing support sys
 In one terminal, start the Temporal worker:
 `./start_worker.py` -- this will launch the Temporal worker within the venv created by setup.sh 
 
-In a separate terminal, start the comparison demo:
-`./run_demo.sh` -- this will launch the demo script within the same venv
-
 ### Run the original workflow by itself
 ```bash
 python original_system.py
@@ -42,26 +39,6 @@ python original_system.py
 ```bash
 python client.py
 ```
-
-### Comparison Demo
-```bash
-python comparison_demo.py
-```
-Compare the before and after implementations to see how Temporal addresses:
-- Durability during failures
-- Automatic retries
-- State management
-- Error handling
-- Scalability (see note, below) 
-
-### Interactive Demo
-```bash
-python interactive_demo.py
-```
-Demonstrates the ability to pause and resume a Temporal workflow mid-stream. Pause it for minutes, 
-hours, or days, and it will resume right where it left off, with no load on any CPUs, no wait logic,
-no regular polling. This demo will also let you get the state of the workflow wherever it is at the
-moment.
 
 ### Bugs
 - ~~The "pause" mechanism wait for the status to change to the next step for actually pausing the workflow. This gave a misleading indication of the actual state of the workflow~~
