@@ -4,6 +4,7 @@ import random
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
+from enums import InvestigationResult, EscalationResult, FixResult
 from models import Ticket
 
 @activity.defn
@@ -26,16 +27,11 @@ async def search_knowledge_base(ticket: Ticket) -> str:
     return "Solution found: Here's a link: [link]"
 
 @activity.defn
-async def assign_agent(ticket: Ticket) -> str:
+async def assign_agent(ticket: Ticket):
     """Assign ticket to agent"""
     agent_type = "senior" if ticket.priority == "high" else "regular"
     activity.logger.debug(f"Assigning {agent_type} agent to ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
-
-    # Sometimes no agents available
-    if random.random() < 0.15:
-        return "agent_unavailable"
-
     agent_name = "Agent-" + str(random.randint(100, 999))
     return agent_name
 
@@ -46,10 +42,10 @@ async def agent_investigate(ticket: Ticket) -> str:
     await asyncio.sleep(7)
 
     # Sometimes needs escalation
-    if random.random() < 0.2:
-        return "needs_escalation"
+    if random.random() < 0.3:
+        return InvestigationResult.NEEDS_ESCALATION.value
 
-    return "investigation_complete"
+    return InvestigationResult.COMPLETE.value
 
 @activity.defn
 async def agent_resolve(ticket: Ticket) -> str:
@@ -57,9 +53,9 @@ async def agent_resolve(ticket: Ticket) -> str:
     activity.logger.debug(f"Agent resolving ticket {ticket.ticket_id}")
     await asyncio.sleep(7)
     if random.random() < 0.2:
-        raise ApplicationError("Agent could not resolve, reassigning to another agent")
+        return InvestigationResult.NEEDS_ESCALATION.value
 
-    return "Ticket resolved by agent"
+    return InvestigationResult.COMPLETE.value
 
 @activity.defn
 async def escalate_to_engineering(ticket: Ticket) -> str:
@@ -68,9 +64,9 @@ async def escalate_to_engineering(ticket: Ticket) -> str:
     await asyncio.sleep(30)
     # Sometimes the engineering team punts to the backlog
     if random.random() < 0.2:
-        return "engineering_rejected"
+        return EscalationResult.REJECTED.value
 
-    return "engineering_accepted"
+    return EscalationResult.ACCEPTED.value
 
 @activity.defn
 async def apply_urgent_fix(ticket: Ticket) -> str:
@@ -80,9 +76,9 @@ async def apply_urgent_fix(ticket: Ticket) -> str:
 
     # Sometimes fix fails
     if random.random() < 0.1:
-        return "fix_failed"
+        return FixResult.FAILED.value
 
-    return "fix_succeeded"
+    return FixResult.SUCCESS.value
 
 @activity.defn
 async def notify_customer(ticket: Ticket, message: str) -> None:
@@ -95,3 +91,23 @@ async def notify_management(ticket: Ticket):
     """Notify management for high priority tickets"""
     activity.logger.debug(f"Notifying management about {ticket.priority} priority ticket {ticket.ticket_id}")
     await asyncio.sleep(4)
+
+
+@activity.defn
+async def validate_resolution(ticket: Ticket) -> str:
+    """Validate that resolution actually worked"""
+    activity.logger.debug(f"Validating resolution for {ticket.ticket_id}")
+    await asyncio.sleep(5)
+
+    # Sometimes validation fails
+    if random.random() < 0.3:
+        raise ApplicationError("Customer reported solution didn't work", non_retryable=True)
+
+    return "Resolution validated"
+
+@activity.defn
+async def release_agent(agent_name: str, ticket: Ticket) -> str:
+    """Release agent from ticket assignment"""
+    activity.logger.info(f"COMPENSATION: Releasing agent {agent_name} from ticket {ticket.ticket_id}")
+    await asyncio.sleep(3)
+    return f"Agent {agent_name} released"

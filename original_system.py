@@ -123,20 +123,18 @@ class SupportTicketSystem:
                 print("🔵 Taking LOW priority path\n")
 
                 # Step 1: Auto-response
-                ticket.status = "auto_responding"
-                auto_result = self.automation.send_auto_response(
-                    ticket.ticket_id, ticket.customer_name
-                )
+                self._status = "auto_responding"
+                auto_result = self.automation.send_auto_response(ticket.ticket_id, ticket.customer_name)
                 print(f"✓ {auto_result}")
 
                 # Step 2: Search knowledge base
-                ticket.status = "searching_kb"
+                self._status = "searching_kb"
                 kb_result = self.automation.search_knowledge_base(ticket.issue)
                 print(f"✓ Knowledge base search: {kb_result}")
 
                 if kb_result == "solution_found":
                     # Success path 1: Solved by automation
-                    ticket.status = "resolved_auto"
+                    self._status = "resolved_auto"
                     self.notifications.notify_customer(
                         ticket.customer_name,
                         "Your issue has been resolved! Check the solution link."
@@ -152,7 +150,7 @@ class SupportTicketSystem:
                     resolve_result = self.agents.resolve_ticket(ticket.ticket_id)
                     print(f"✓ {resolve_result}")
 
-                    ticket.status = "resolved_agent"
+                    self._status = "resolved_agent"
                     self.notifications.notify_customer(
                         ticket.customer_name,
                         "Your ticket has been resolved by our team!"
@@ -165,12 +163,12 @@ class SupportTicketSystem:
                 print("🟡 Taking MEDIUM priority path\n")
 
                 # Step 1: Assign agent
-                ticket.status = "assigning_agent"
+                self._status = "assigning_agent"
                 agent = self.agents.assign_agent(ticket.ticket_id, "medium")
                 print(f"✓ Assigned to {agent}")
 
                 # Step 2: Investigate
-                ticket.status = "investigating"
+                self._status = "investigating"
                 invest_result = self.agents.investigate_issue(
                     ticket.ticket_id, ticket.issue
                 )
@@ -179,13 +177,13 @@ class SupportTicketSystem:
                 if invest_result == "needs_escalation":
                     # Escalate to engineering
                     print("Issue needs escalation...")
-                    ticket.status = "escalating"
+                    self._status = "escalating"
                     esc_result = self.escalation.escalate_to_engineering(
                         ticket.ticket_id, ticket.issue
                     )
                     print(f"✓ {esc_result}")
 
-                    ticket.status = "resolved_escalated"
+                    self._status = "resolved_escalated"
                     self.notifications.notify_customer(
                         ticket.customer_name,
                         "Your issue required engineering review and has been resolved!"
@@ -194,11 +192,11 @@ class SupportTicketSystem:
                     return f"Resolved with escalation: {ticket.ticket_id}"
                 else:
                     # Resolve normally
-                    ticket.status = "resolving"
+                    self._status = "resolving"
                     resolve_result = self.agents.resolve_ticket(ticket.ticket_id)
                     print(f"✓ {resolve_result}")
 
-                    ticket.status = "resolved_agent"
+                    self._status = "resolved_agent"
                     self.notifications.notify_customer(
                         ticket.customer_name,
                         "Your ticket has been resolved!"
@@ -211,24 +209,24 @@ class SupportTicketSystem:
                 print("🔴 Taking HIGH priority path\n")
 
                 # Step 1: Assign senior agent immediately
-                ticket.status = "assigning_senior"
+                self._status = "assigning_senior"
                 agent = self.agents.assign_agent(ticket.ticket_id, "high")
                 print(f"✓ Assigned to senior: {agent}")
 
                 # Step 2: Escalate immediately
-                ticket.status = "escalating"
+                self._status = "escalating"
                 esc_result = self.escalation.escalate_to_engineering(
                     ticket.ticket_id, ticket.issue
                 )
                 print(f"✓ {esc_result}")
 
                 # Step 3: Apply urgent fix
-                ticket.status = "urgent_fix"
+                self._status = "urgent_fix"
                 fix_result = self.escalation.apply_urgent_fix(ticket.ticket_id)
                 print(f"✓ {fix_result}")
 
                 # Step 4: Notify everyone
-                ticket.status = "notifying"
+                self._status = "notifying"
                 self.notifications.notify_customer(
                     ticket.customer_name,
                     "URGENT: Your critical issue has been resolved!"
@@ -238,7 +236,7 @@ class SupportTicketSystem:
                 self.notifications.notify_management(ticket.ticket_id, "high")
                 print(f"✓ Management notified")
 
-                ticket.status = "resolved_urgent"
+                self._status = "resolved_urgent"
                 print(f"\n✅ SUCCESS: HIGH priority ticket {ticket.ticket_id} resolved!\n")
                 return f"Resolved urgently: {ticket.ticket_id}"
 
@@ -247,7 +245,7 @@ class SupportTicketSystem:
 
         except Exception as e:
             print(f"\n❌ FAILURE: {str(e)}")
-            print(f"Ticket stuck in status: {ticket.status}")
+            print(f"Ticket stuck in status: {self._status}")
             print("Manual intervention required!\n")
             return f"Failed: {ticket.ticket_id} - {str(e)}"
 
