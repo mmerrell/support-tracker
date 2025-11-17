@@ -14,7 +14,9 @@ with workflow.unsafe.imports_passed_through():
         agent_investigate,
         send_auto_response,
         search_knowledge_base,
-    )
+        validate_resolution,
+        release_agent
+)
 
 class WorkflowBase:
     @staticmethod
@@ -39,7 +41,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"{resolve_result}")
-        ticket.status = resolve_result
+        self._status = resolve_result
         return resolve_result
 
     async def do_assign_agent(self, ticket) -> str:
@@ -48,7 +50,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"Assignment result: {assignment_result}")
-        ticket.status = assignment_result
+        self._status = assignment_result
         return assignment_result
 
     async def do_notify_customer(self, ticket, message: str):
@@ -64,7 +66,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"KB search successful: {solution}")
-        ticket.status = "searching_kb"
+        self._status = "searching_kb"
         return solution
 
     async def do_send_auto_response(self, ticket) -> str:
@@ -73,7 +75,7 @@ class WorkflowBase:
             task_queue="support",
         )
         workflow.logger.debug(f"Result: {auto_result}")
-        ticket.status = "auto_responding"
+        self._status = "auto_responding"
         return auto_result
 
     async def do_escalate_to_engineering(self, ticket) -> str:
@@ -82,7 +84,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"{esc_result}")
-        ticket.status = esc_result
+        self._status = esc_result
         return esc_result
 
     async def do_agent_investigate(self, ticket) -> str:
@@ -91,7 +93,7 @@ class WorkflowBase:
             task_queue="internal",
         )
         workflow.logger.debug(f"Investigation: {investigation_result}")
-        ticket.status = investigation_result
+        self._status = investigation_result
         return investigation_result
 
     async def do_notify_management(self, ticket):
@@ -99,7 +101,7 @@ class WorkflowBase:
             notify_management, ticket,
             task_queue="support",
         )
-        workflow.logger.debug(f"Notifying management about ticket ({ticket.ticket_id}) status: {ticket.status}")
+        workflow.logger.debug(f"Notifying management about ticket ({ticket.ticket_id}) status: {self._status}")
 
     async def do_apply_urgent_fix(self, ticket) -> str:
         fix_result = await self._execute_activity(
@@ -107,5 +109,19 @@ class WorkflowBase:
             task_queue="engineering",
         )
         workflow.logger.debug(f"Applying urgent fix result: {fix_result}")
-        ticket.status = fix_result
+        self._status = fix_result
         return fix_result
+
+    async def do_validate_resolution(self, ticket) -> str:
+        fix_result = await self._execute_activity(
+            validate_resolution, ticket,
+            task_queue="engineering",
+        )
+        workflow.logger.debug(f"Validation result: {fix_result}")
+        return fix_result
+
+    async def do_release_agent(self, agent_name: str, ticket):
+        return await self._execute_activity(
+            release_agent, agent_name, ticket,
+            task_queue="support",
+        )

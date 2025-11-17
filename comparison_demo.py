@@ -15,9 +15,9 @@ async def run_original_version():
     import original_system
 
     tickets = [
-        original_system.Ticket("ORIG-001", "Alice Smith", "Can't login to account", "low"),
-        original_system.Ticket("ORIG-002", "Bob Jones", "Payment processing stuck", "medium"),
-        original_system.Ticket("ORIG-003", "Carol Williams", "Database corruption detected!", "high"),
+        original_system.Ticket("ORIG-001", "Alice Smith", "Can't login to account"),
+        original_system.Ticket("ORIG-002", "Bob Jones", "Payment processing stuck"),
+        original_system.Ticket("ORIG-003", "Carol Williams", "Database corruption detected!"),
     ]
 
     system = original_system.SupportTicketSystem()
@@ -57,9 +57,13 @@ async def run_temporal_version():
         client = await Client.connect("localhost:7233")
 
         tickets = [
-            Ticket("TEMP-001", "Alice Smith", "Can't login to account", "low", "initialized"),
-            Ticket("TEMP-002", "Bob Jones", "Payment processing stuck", "medium", "initialized"),
-            Ticket("TEMP-003", "Carol Williams", "Database corruption detected!", "high", "initialized"),
+            Ticket("TEMP-001", "Alice Smith", "Can't login to account", "low"),
+            Ticket("TEMP-002", "Bob Jones", "Payment processing stuck", "medium"),
+            Ticket("TEMP-003", "Carol Williams", "Database corruption detected!", "high"),
+            Ticket("TEMP-004", "Dave Brown", "API rate limits hit", "medium"),
+            Ticket("TEMP-005", "Eve Davis", "SECURITY BREACH - immediate action needed", "high"),
+            Ticket("TEMP-006", "Frank Miller", "Out of ideas", "low"),
+            Ticket("TEMP-007", "Spongebob Squarepants", "Job stinks", "high"),
         ]
 
         results = []

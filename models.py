@@ -6,4 +6,3 @@ class Ticket:
     customer_name: str
     issue: str
     priority: str
-    status: str

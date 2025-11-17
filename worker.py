@@ -14,6 +14,8 @@ from activities import (
     agent_investigate,
     send_auto_response,
     search_knowledge_base,
+    validate_resolution,
+    release_agent,
 )
 
 import logging
@@ -39,6 +41,7 @@ async def main():
             notify_customer,
             notify_management,
             agent_resolve,
+            release_agent
         ],
         task_queue="support"
     )
@@ -58,6 +61,7 @@ async def main():
         client,
         activities=[
             apply_urgent_fix,
+            validate_resolution,
         ],
         task_queue="engineering"
     )
