@@ -70,5 +70,5 @@ echo "Terminal 2 - Start Worker (script activates venv):"
 echo "  ./start_worker.sh"
 echo
 echo "Terminal 3 - Run Demo (script activates venv):"
-echo "  run_demo.sh"
+echo "  ./run_demo.sh"
 echo

@@ -42,7 +42,6 @@ async def main():
 
     client = await Client.connect("localhost:7233")
 
-    # Process tickets concurrently (show Temporal's power!)
     handles = []
     for i, ticket in enumerate(tickets, 1):
         workflow_id = f"ticket-{ticket.priority}-{ticket.ticket_id}-{uuid.uuid4()}"

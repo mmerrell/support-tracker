@@ -1,3 +1,4 @@
 #!/bin/bash
 source venv/bin/activate
-python comparison_demo.py
+python original_system.py
+python run_temporal.py

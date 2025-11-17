@@ -5,23 +5,22 @@ This repository demonstrates two versions of a traditional ticketing support sys
 ## Project Files
   - `README.md` - This file. The one you're reading.
   - `run.demo.sh` - File for running the comparison demo
-  - `comparison_demo.py` - Script that runs the original Python system as well as the Temporalized version
+  - `run_original.py` - Script that runs a few tickets through the original Python system
+  - `run_temporal.py` - For running tickets through the Temporal workflow from the cli
   - `enums.py` - a number of enumerated types, to give real values to various states other than strings
   - `original_system.py` - The purely synchronous, original Python version
   - `activities.py` - Temporal Activities
-  - `client.py` - Script that puts tickets through the workflow
   - `models.py` - @dataclasses
   - `base_workflow.py` - Base workflow, with activity helpers
   - `workflow.py` - The main Temporal workflow
   - `worker.py` - The Temporal worker
-  - `client.py` - For running tickets through the Temporal workflow from the cli
   - `requirements.txt` - Python dependencies. Namely temporal.
   - `start_worker.sh` - script that starts the Temporal worker within a virtual env
 
 ## Prerequisites
 - I have only tested this on a Mac ARM laptop--I would think it works on Windows, except that the python commands are bound to be different
 - Python 3.8+
-- Temporal server running (scripts assume localhost:7233 -- edit worker.py and client.py to change)
+- Temporal server running (scripts assume localhost:7233 -- edit worker.py and run_temporal.py to change)
 - `pip install temporalio`
 
 ## Initialize the environment
@@ -35,17 +34,12 @@ In one terminal, start the Temporal worker:
 
 ### Run the original workflow by itself
 ```bash
-python original_system.py
-```
-
-### Run a comparison between the original Python and  Temporal workflows
-```bash
-python comparison_demo.py
+python original_system.py -- this will launch the original Python version's main() method with ~3 tickets, serially
 ```
 
 ### Run the Temporal workflow
 ```bash
-python client.py
+python run_temporal.py -- this will run ~30 tickets through the Temporal system in parallel
 ```
 
 ### Bugs
