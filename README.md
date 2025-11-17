@@ -3,20 +3,20 @@ This repository demonstrates two versions of a traditional ticketing support sys
 (in the "before-temporal" folder) is a synchronous version, 
 
 ## Project Files
-  - `README.md` - This file. The one you're reading.
-  - `run.demo.sh` - File for running the comparison demo
-  - `run_original.py` - Script that runs a few tickets through the original Python system
-  - `run_temporal.py` - For running tickets through the Temporal workflow from the cli
-  - `enums.py` - a number of enumerated types, to give real values to various states other than strings
-  - `original_system.py` - The purely synchronous, original Python version
   - `activities.py` - Temporal Activities
-  - `models.py` - @dataclasses
   - `base_workflow.py` - Base workflow, with activity helpers
-  - `workflow.py` - The main Temporal workflow
-  - `worker.py` - The Temporal worker
+  - `enums.py` - a number of enumerated types, to give real values to various states other than strings
+  - `models.py` - @dataclasses
+  - `original_system.py` - The purely synchronous, original Python version
+  - `README.md` - This file. The one you're reading.
   - `requirements.txt` - Python dependencies. Namely temporal.
+  - `run_demo.sh` - File for running the comparison demo
+  - `run_temporal.py` - For running tickets through the Temporal workflow from the cli
+  - `setup.sh` - script that starts venv, installs requirements, gets system ready
   - `start_worker.sh` - script that starts the Temporal worker within a virtual env
-
+  - `worker.py` - The Temporal worker
+  - `workflow.py` - The main Temporal workflow
+  
 ## Prerequisites
 - I have only tested this on a Mac ARM laptop--I would think it works on Windows, except that the python commands are bound to be different
 - Python 3.8+
@@ -57,7 +57,7 @@ python run_temporal.py -- this will run ~30 tickets through the Temporal system 
 - ✅ Need to refactor activity calls to encapsulate the repetitive utilities (activities, logging, queues)
 - ✅ Logging improvements -- precision, level, terseness
 - ✅ 2 compensation steps - one for releasing an agent after they fail to investigate, and one to notify the customer that they need to escalate
-- ✅ Status now belongs to workflow, not Ticket. I can't believe I didn't see that before. Real-time queries available
+- ✅ Status now belongs to workflow, not Ticket. I can't believe I didn't see that before. Real-time queries available now
 
 ## Improvements I'd like to make
 - Heartbeats from long-running tasks
