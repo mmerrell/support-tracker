@@ -4,6 +4,9 @@ This repository demonstrates two versions of a traditional ticketing support sys
 
 ## Project Files
   - `README.md` - This file. The one you're reading.
+  - `run.demo.sh` - File for running the comparison demo
+  - `comparison_demo.py` - Script that runs the original Python system as well as the Temporalized version
+  - `enums.py` - a number of enumerated types, to give real values to various states other than strings
   - `original_system.py` - The purely synchronous, original Python version
   - `activities.py` - Temporal Activities
   - `client.py` - Script that puts tickets through the workflow
@@ -49,7 +52,7 @@ python client.py
 - The workflow_id should be the ticket_id, rather than "ticket_id-uuid4", but it makes for nightmarish demos. This can be fixed once there's a database with a proper sequence
 - ~~Critical - The "knowledge base failed" workflow (LowPriority) path is failing~~
 - ~~Critical - The "no agents available" workflow (HighPriority) path is failing~~
-- Urgent - When "agent reassignment" fails 3 times workflow (LowPriority), the child workflow fails, and doesn't follow the ApplicationError flow. Need advice on best practices. Happens 1 in ~30 times
+- ~~Urgent - When "agent reassignment" fails 3 times workflow (LowPriority), the child workflow fails, and doesn't follow the ApplicationError flow. Need advice on best practices. Happens 1 in ~30 times~~
 
 ### Improvements made since Nov 12:
 - ✅ Workflow refinements, adding some ApplicationErrors to handle flow rather than if/then
@@ -59,11 +62,11 @@ python client.py
 - ✅ Group workers by where they exist in the org (support, internal, eng), not the nature of the worklows
 - ✅ Need to refactor activity calls to encapsulate the repetitive utilities (activities, logging, queues)
 - ✅ Logging improvements -- precision, level, terseness
+- ✅ 2 compensation steps - one for releasing an agent after they fail to investigate, and one to notify the customer that they need to escalate
+- ✅ Status now belongs to workflow, not Ticket. I can't believe I didn't see that before. Real-time queries available
 
 ## Improvements I'd like to make
 - Heartbeats from long-running tasks
-- Compensation activities for failed steps (if an agent takes too long to respond and we need to reassign, etc)
 - Demonstration of race condition handling during API/db calls
 - Pause/resume workflow - splitting parent/child workflows broke this--need to bring it back
-- Real-time status queries
 - Can I suppress stacktraces from logs?

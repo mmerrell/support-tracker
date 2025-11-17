@@ -15,9 +15,9 @@ async def run_original_version():
     import original_system
 
     tickets = [
-        original_system.Ticket("ORIG-001", "Alice Smith", "Can't login to account"),
-        original_system.Ticket("ORIG-002", "Bob Jones", "Payment processing stuck"),
-        original_system.Ticket("ORIG-003", "Carol Williams", "Database corruption detected!"),
+        original_system.Ticket("ORIG-001", "Alice Smith", "Can't login to account", "low"),
+        original_system.Ticket("ORIG-002", "Bob Jones", "Payment processing stuck", "medium"),
+        original_system.Ticket("ORIG-003", "Carol Williams", "Database corruption detected!", "high"),
     ]
 
     system = original_system.SupportTicketSystem()
