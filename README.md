@@ -1,8 +1,8 @@
 # Temporal Conversion Example
 This repository demonstrates two versions of a traditional ticketing support system. The first
 (`original_system.py`) is a synchronous version, developed in Python (by Claude Sonnet 4). I then converted 
-the workflow to Temporal in three phases. the `main` branch maps to `v3`. I kept the earlier versions to demonstrate
-the evolution of the workflow, which could be instructive to other people learning how to implement Temporal workflows.
+the workflow to Temporal in three phases (the `main` branch maps to `v3`). I kept the earlier versions to demonstrate
+the evolution of the workflow, which could be instructive to others learning how to implement Temporal workflows.
 
 - `v1` - The initial implementation: ultra simple, giving basic Temporal functionality (workflows, activities, workers)
 - `v2` - Some revisions, including breaking up central workflow into parent/child for more modular implementation 
@@ -13,10 +13,10 @@ the evolution of the workflow, which could be instructive to other people learni
   - `base_workflow.py` - Base workflow, with activity helpers
   - `enums.py` - a number of enumerated types, to give real values to various states other than strings
   - `models.py` - @dataclasses
-  - `original_system.py` - The purely synchronous, original Python version
+  - `original_system.py` - The purely synchronous, original Claude-generated version
   - `README.md` - This file. The one you're reading.
   - `requirements.txt` - Python dependencies. Namely temporal.
-  - `run_demo.sh` - File for running the comparison demo
+  - `run_demo.sh` - Script that starts the venv, then runs both the non-Temporal and the Temporal versions of the workflow
   - `run_temporal.py` - For running tickets through the Temporal workflow from the cli
   - `setup.sh` - script that starts venv, installs requirements, gets system ready
   - `start_worker.sh` - script that starts the Temporal worker within a virtual env
