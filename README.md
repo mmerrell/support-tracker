@@ -1,6 +1,12 @@
 # Temporal Conversion Example
 This repository demonstrates two versions of a traditional ticketing support system. The first
-(in the "before-temporal" folder) is a synchronous version, 
+(`original_system.py`) is a synchronous version, developed in Python (by Claude Sonnet 4). I then converted 
+the workflow to Temporal in three phases. the `main` branch maps to `v3`. I kept the earlier versions to demonstrate
+the evolution of the workflow, which could be instructive to other people learning how to implement Temporal workflows.
+
+- `v1` - The initial implementation: ultra simple, giving basic Temporal functionality (workflows, activities, workers)
+- `v2` - Some revisions, including breaking up central workflow into parent/child for more modular implementation 
+- `v3` - Adding compensation steps, queries, and making small improvements (eliminating magic strings, making logging more precise)
 
 ## Project Files
   - `activities.py` - Temporal Activities
@@ -34,21 +40,21 @@ In one terminal, start the Temporal worker:
 
 ### Run the original workflow by itself
 ```bash
-python original_system.py -- this will launch the original Python version's main() method with ~3 tickets, serially
+python original_system.py -- this will launch the original Python version's `main()` method with ~3 tickets, serially
 ```
 
 ### Run the Temporal workflow
 ```bash
-python run_temporal.py -- this will run ~30 tickets through the Temporal system in parallel
+python run_temporal.py -- this will run 30 tickets through the Temporal system in parallel
 ```
 
 ### Bugs
 - The workflow_id should be the ticket_id, rather than "ticket_id-uuid4", but it makes for nightmarish demos. This can be fixed once there's a database with a proper sequence
 - ~~Critical - The "knowledge base failed" workflow (LowPriority) path is failing~~
 - ~~Critical - The "no agents available" workflow (HighPriority) path is failing~~
-- ~~Urgent - When "agent reassignment" fails 3 times workflow (LowPriority), the child workflow fails, and doesn't follow the ApplicationError flow. Need advice on best practices. Happens 1 in ~30 times~~
+- ~~Urgent - When "agent reassignment" fails 3 times workflow (LowPriority), the child workflow fails, and doesn't follow the ApplicationError flow~~
 
-### Improvements made since Nov 12:
+### Improvements made since v1 (Nov 12):
 - ✅ Workflow refinements, adding some ApplicationErrors to handle flow rather than if/then
 - ✅ Need to break up the main workflow into low/med/high child workflows
 - ✅ Break up monolithic workflow into parent/child
@@ -62,5 +68,5 @@ python run_temporal.py -- this will run ~30 tickets through the Temporal system 
 ## Improvements I'd like to make
 - Heartbeats from long-running tasks
 - Demonstration of race condition handling during API/db calls
-- Pause/resume workflow - splitting parent/child workflows broke this--need to bring it back
+- Pause/resume workflow - splitting parent/child workflows broke this--need to bring it back from v1
 - Can I suppress stacktraces from logs?
