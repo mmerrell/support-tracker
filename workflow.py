@@ -3,7 +3,7 @@ from typing import Optional, List
 from temporalio import workflow
 from temporalio.exceptions import ActivityError, ApplicationError
 
-from base_workflow import WorkflowBase
+from base_workflow import WorkflowBase, WORKFLOW_TASK_QUEUE
 from enums import InvestigationResult, FixResult, EscalationResult
 from models import Ticket
 
@@ -53,7 +53,7 @@ class SupportTicketSystem(WorkflowBase):
                 result = await workflow.execute_child_workflow(
                     LowPriorityWorkflow.run,
                     ticket,
-                    task_queue="workflows",
+                    task_queue=WORKFLOW_TASK_QUEUE,
                     id=f"low-{ticket.ticket_id}",
                 )
                 self._status = "completed"
@@ -67,7 +67,7 @@ class SupportTicketSystem(WorkflowBase):
                 result = await workflow.execute_child_workflow(
                     MediumPriorityWorkflow.run,
                     ticket,
-                    task_queue="workflows",
+                    task_queue=WORKFLOW_TASK_QUEUE,
                     id=f"medium-{ticket.ticket_id}",
                 )
                 self._status = "completed"
@@ -82,7 +82,7 @@ class SupportTicketSystem(WorkflowBase):
                 result = await workflow.execute_child_workflow(
                     HighPriorityWorkflow.run,
                     ticket,
-                    task_queue="workflows",
+                    task_queue=WORKFLOW_TASK_QUEUE,
                     id=f"high-{ticket.ticket_id}",
                 )
                 self._status = "completed"

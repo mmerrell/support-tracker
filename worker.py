@@ -1,8 +1,8 @@
 import asyncio
 from temporalio.client import Client
 from temporalio.worker import Worker
-
 from workflow import SupportTicketSystem, LowPriorityWorkflow, MediumPriorityWorkflow, HighPriorityWorkflow
+from base_workflow import WORKFLOW_TASK_QUEUE, SUPPORT_TASK_QUEUE, ENGINEERING_TASK_QUEUE, ESCALATION_TASK_QUEUE
 
 from activities import (
     agent_resolve,
@@ -30,7 +30,7 @@ async def main():
     main_worker = Worker(
         client,
         workflows=[SupportTicketSystem, LowPriorityWorkflow, MediumPriorityWorkflow, HighPriorityWorkflow],
-        task_queue="workflows"
+        task_queue=WORKFLOW_TASK_QUEUE
     )
 
     support_worker = Worker(
@@ -43,7 +43,7 @@ async def main():
             agent_resolve,
             release_agent
         ],
-        task_queue="support"
+        task_queue=SUPPORT_TASK_QUEUE,
     )
 
     internal_worker = Worker(
@@ -53,7 +53,7 @@ async def main():
             agent_investigate,
             escalate_to_engineering,
         ],
-        task_queue="internal"
+        task_queue=ESCALATION_TASK_QUEUE,
     )
 
     # Activities related to the product itself
@@ -63,7 +63,7 @@ async def main():
             apply_urgent_fix,
             validate_resolution,
         ],
-        task_queue="engineering"
+        task_queue=ENGINEERING_TASK_QUEUE,
     )
 
     print("Workers ready...")
